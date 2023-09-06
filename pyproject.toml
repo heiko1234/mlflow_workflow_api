@@ -1,0 +1,57 @@
+[tool.poetry]
+name = "mlflow-workflow-api"
+version = "0.1.0"
+description = ""
+authors = ["Heiko Kulinna <Heikokulinna@gmx.de>"]
+# readme = "README.md"
+
+
+
+# packages = [{
+#    include='backend_service'
+#    }]
+
+
+[tool.poetry.dependencies]
+python = ">=3.10.10, < 3.11"
+numpy = "^1.25.2"
+pandas = "^2.1.0"
+polars = "*"
+
+mlflow = "==2.5.0"
+
+scikit-learn = "^1.0.1"
+scipy = "^1.7.3"
+pyarrow = "^6.0.1"
+
+
+
+pydantic = "^2.3.0"
+fastapi = "^0.103.1"
+uvicorn = "^0.23.2"
+
+azure-storage-blob = "^12.17.0"
+azure-kusto-data = "^4.2.0"
+azure-identity = "^1.14.0"
+azure-core = "^1.29.3"
+
+Flask = "^2.3.3"
+python-dotenv = "^1.0.0"
+
+
+[tool.poetry.group.dev.dependencies]
+bandit = "^1.7.5"
+black = "^23.7.0"
+flake8 = "^6.1.0"
+ruff = "^0.0.287"
+pytest = "^7.4.1"
+pre-commit = "^3.4.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+
+
