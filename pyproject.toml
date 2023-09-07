@@ -37,6 +37,7 @@ azure-core = "^1.29.3"
 
 Flask = "^2.3.3"
 python-dotenv = "^1.0.0"
+fastparquet = "^2023.8.0"
 
 
 [tool.poetry.group.dev.dependencies]
