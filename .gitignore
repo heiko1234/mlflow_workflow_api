@@ -14,6 +14,12 @@ data/
 .data
 data
 
+# mlflow
+.mlruns/
+mlruns/
+ml/
+.ml/
+
 
 
 # Distribution / packaging
