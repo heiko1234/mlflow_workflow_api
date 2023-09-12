@@ -6,7 +6,7 @@ import pandas as pd
 
 
 try:
-    from experimental.nelson import (
+    from backend_service.utilities.nelson  import (
         rule1,
         rule2,
         rule3,
@@ -17,7 +17,7 @@ try:
         rule8,
     )
 except ModuleNotFoundError:
-    from experimental.nelson import (
+    from backend_service.utilities.nelson import (
         rule1,
         rule2,
         rule3,
