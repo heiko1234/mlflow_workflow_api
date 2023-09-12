@@ -8,6 +8,8 @@
 # (.venv) uvicorn main:app --reload
 
 
+# use this command to run the backend service
+
 (.venv) cd backend_service/backend_service/
 (.venv) uvicorn main:app --reload
 

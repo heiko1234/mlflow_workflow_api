@@ -6,6 +6,7 @@ import pandas as pd
 
 import os
 import mlflow
+import collections
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -62,6 +63,57 @@ class mlflow_training():
         
         return dft
     
+    def transform_rawdata(self, data, transformation_dict=None):
+        
+        output = data.copy()
+        
+        if transformation_dict == None:
+            print("No transformation dict given!")
+        for column in output.columns:
+            transformation = transformation_dict[column]
+            output[column] = self.transform_column(data=data, column=column, transformation=transformation)
+        
+        return output
+    
+    def transform_column(self, data, column, transformation):
+        
+        if transformation == "no transformation":
+            data_series = data[column]
+        elif transformation == "log":
+            data_series = data[column].apply(lambda x: np.log(x))
+        elif transformation == "sqrt":
+            data_series = data[column].apply(lambda x: np.sqrt(x))
+        elif transformation == "1/x":
+            data_series = data[column].apply(lambda x: 1/x)
+        elif transformation == "x^2":
+            data_series = data[column].apply(lambda x: x**2)
+        elif transformation == "x^3":
+            data_series = data[column].apply(lambda x: x**3)
+        else:
+            data_series = data[column]
+            
+        return data_series
+    
+    
+    def update_nested_dict(self, original_dict, overwrite_dict):
+        """This function updates a nested dictionary
+
+        Args:
+            original_dict (dict): any dictionary
+            overwrite_dict (dict): any subset of the original_dict, that will overwrite the original_dict
+        Returns:
+            _type_: returns the original_dict updated with the overwrite_dict
+        """
+    
+    
+        for k, v in overwrite_dict.items():
+            if isinstance(v, collections.abc.Mapping):
+                original_dict[k] = self.update_nested_dict(original_dict.get(k, {}), v)
+            else:
+                original_dict[k] = v
+                
+        return original_dict
+        
     
     def descriptiontable_with_correlation(self, data, target):
         
