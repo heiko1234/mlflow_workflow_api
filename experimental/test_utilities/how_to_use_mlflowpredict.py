@@ -8,6 +8,10 @@ import pandas as pd
 
 df = pd.DataFrame()
 
+
+
+
+
 df["Yield"] = [44.0, 43.0, 46.0, 40.1, 42.2]
 
 
@@ -27,6 +31,30 @@ df
 
 
 
+# other test data
+
+data = pd.DataFrame()
+data["BiologicalMaterial02"] = [55, 54, 52.5, 58, 59]
+data["BiologicalMaterial06"] = [45, 55.5, 50.5, 57.5, 56]
+data["ManufacturingProcess06"] = [204, 213.0, 210, 209, 204]
+
+data["Yield"] = data["BiologicalMaterial02"]*0.4+data["BiologicalMaterial06"]*0.2+data["ManufacturingProcess06"]*0.04
+
+
+data
+
+
+55*0.4+45*0.2+204*0.04   # 39.16
+54*0.4+55.5*0.2+215*0.04  # 41.3
+52*0.4+50.5*0.2+210*0.04  # 39.3
+58*0.4+59*0.2+209*0.04    # 43.36
+
+
+
+
+
+
+
 target = "Yield"
 
 features = ["BioMaterial1", "BioMaterial2", "ProcessValue1"]
@@ -36,6 +64,9 @@ features = ["BiologicalMaterial02", "BiologicalMaterial06", "ManufacturingProces
 
 
 # /home/heiko/Schreibtisch/Repos/dash_apps/mlflow_workflow_app/experimental/mflow_workflow/how_to_use_mlflowclass.py
+
+
+
 
 from backend_service.utilities.mlflow_predict_class import mlflow_model
 
@@ -47,10 +78,20 @@ from backend_service.utilities.mlflow_predict_class import mlflow_model
 
 df[features]
 
+data[features]
 
+
+
+
+# #######################
 
 # Load the model
 my_mlflow_model = mlflow_model(model_name="project_name", staging="Staging")
+
+
+
+# ###########################
+
 
 
 
@@ -81,7 +122,30 @@ my_mlflow_model.get_feature_minmaxscaler()
 my_mlflow_model.get_target_minmaxscaler()
 
 
+
+# the starting df
 my_mlflow_model.make_predictions(df)
+
+
+# the other data set
+
+my_mlflow_model.get_model_artifact(artifact="feature_dtypes.json")
+my_mlflow_model.get_model_artifact(artifact="transformation_dict.json")
+
+my_mlflow_model.transform_rawdata(data)
+my_mlflow_model.calculate_transform_rawdata(data)
+my_mlflow_model.make_predictions(data)
+
+data["prediction"] = my_mlflow_model.make_predictions(data)
+data
+
+
+# test ende with data
+
+
+
+
+
 
 my_mlflow_model.validate_data_columns(df)
 

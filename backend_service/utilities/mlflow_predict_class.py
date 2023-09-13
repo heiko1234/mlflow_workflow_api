@@ -89,6 +89,7 @@ class mlflow_model():
         return output
 
 
+    # TODO dtype and dtype_dict are they equal?
     def decode_df_mlflow_dtype(self, data, dtype):
         
         mlflow_dtypes = {
@@ -248,7 +249,7 @@ class mlflow_model():
             return False
         
         
-    def calculate_transform_rawdata(self, data):
+    def scale_and_transform_rawdata(self, data):
         features = self.get_features()
         feature_scaler = self.get_feature_minmaxscaler()
         feature_dtypes = self.get_model_artifact(artifact="feature_dtypes.json")
