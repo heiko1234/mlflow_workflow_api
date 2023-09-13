@@ -158,6 +158,14 @@ def filter_dataframe_by_limits(dataframe, limits_dict):
     return filtered_dataframe 
 
 
+def create_data_transformng_dict(dataframe):
+    
+    dict = {}
+    
+    for element_in_description in dataframe["description"].unique():
+        dict[element_in_description] = dataframe.loc[dataframe["description"]==element_in_description, "transforming"].values[0]
+        
+    return dict
 
 
 def update_nested_dict(original_dict, overwrite_dict):

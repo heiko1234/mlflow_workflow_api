@@ -18,9 +18,9 @@ df["ProcessValue1"] = [20, 15, 10, 9, 2]
 
 
 
-df["BiologicalMaterial02"] = [55, 54, 48, 58, 60.5]
-df["BiologicalMaterial06"] = [40.9, 55.5, 50.5, 60.5, 60.5]
-df["ManufacturingProcess06"] = [200, 215, 210, 209, 202]
+df["BiologicalMaterial02"] = [55, 54, 52, 58, 60.5]
+df["BiologicalMaterial06"] = [45, 55.5, 50.5, 59, 58]
+df["ManufacturingProcess06"] = [204, 215, 210, 209, 204]
 
 
 df
@@ -37,7 +37,7 @@ features = ["BiologicalMaterial02", "BiologicalMaterial06", "ManufacturingProces
 
 # /home/heiko/Schreibtisch/Repos/dash_apps/mlflow_workflow_app/experimental/mflow_workflow/how_to_use_mlflowclass.py
 
-from backend_service.utilities.mlflow_class import mlflow_model
+from backend_service.utilities.mlflow_predict_class import mlflow_model
 
 
 
@@ -48,8 +48,13 @@ from backend_service.utilities.mlflow_class import mlflow_model
 df[features]
 
 
+
+# Load the model
 my_mlflow_model = mlflow_model(model_name="project_name", staging="Staging")
 
+
+
+# test some functions
 
 
 my_mlflow_model.list_registered_models()
@@ -59,6 +64,10 @@ my_mlflow_model.get_model_version()
 my_mlflow_model.get_model()
 
 my_mlflow_model.get_features()
+
+my_mlflow_model.get_model_artifact(artifact="feature_limits_unscaled.json")
+
+my_mlflow_model.get_model_artifact(artifact="transformation_dict.json")
 
 my_mlflow_model.get_model_artifact(artifact="feature_dtypes.json")
 
@@ -76,6 +85,16 @@ my_mlflow_model.make_predictions(df)
 
 my_mlflow_model.validate_data_columns(df)
 
+
+df
+
+
+my_mlflow_model.validate_limits_features(df)
+
+
+my_mlflow_model.transform_rawdata(df)
+
+my_mlflow_model.calculate_transform_rawdata(df)
 
 
 

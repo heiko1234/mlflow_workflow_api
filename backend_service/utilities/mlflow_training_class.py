@@ -70,8 +70,13 @@ class mlflow_training():
         if transformation_dict == None:
             print("No transformation dict given!")
         for column in output.columns:
-            transformation = transformation_dict[column]
-            output[column] = self.transform_column(data=data, column=column, transformation=transformation)
+            try:
+                transformation = transformation_dict[column]
+                output[column] = self.transform_column(data=data, column=column, transformation=transformation)
+            except Exception as e:
+                print(e)
+                print(f"Column {column} not transformed! {column} is not in transformation_dict")
+                pass
         
         return output
     
@@ -214,7 +219,7 @@ class mlflow_training():
 
 
 
-    def mlflow_training(self, features_train, target_train, features_test, target_test, signature, data_minmax_dict, feature_minmax_dict, target_minmax_dict, feature_dtypes_dict, model_name, model_typ="linear_regression"):
+    def mlflow_training(self, features_train, target_train, features_test, target_test, signature, data_minmax_dict, feature_minmax_dict_original, feature_minmax_dict, target_minmax_dict, feature_dtypes_dict, model_name, transformation_dict=None, model_typ="linear_regression"):
         
         
         if model_name is not None:
@@ -237,7 +242,6 @@ class mlflow_training():
         sk_model = sk_model[model_typ]
         print(sk_model)
         
-
         
         mlflow.set_experiment(model_name)
         print(f"MLFLow is tracking: {mlflow.is_tracking_uri_set()}")
@@ -266,17 +270,24 @@ class mlflow_training():
                 feature_minmax_dict, "model/feature_limits.json"
             )
             mlflow.log_dict(
+                feature_minmax_dict_original, "model/feature_limits_unscaled.json"
+            )
+            mlflow.log_dict(
                 target_minmax_dict, "model/target_limits.json"
             )
             mlflow.log_dict(
                 feature_dtypes_dict, "model/feature_dtypes.json"
             )
             
+            mlflow.log_dict(
+                transformation_dict, "model/transformation_dict.json"
+            )
+            
         mlflow.end_run()
 
 
 
-    def make_model(self, data=None, target=None, features=None, test_size = 0.2, scaler_expand_by="std", model_name=None, model_parameter=None, model_typ="linear_regression"):
+    def make_model(self, data=None, target=None, features=None, test_size = 0.2, scaler_expand_by="std", transformation_dict=None, model_name=None, model_parameter=None, model_typ="linear_regression"):
         
 
 
@@ -286,15 +297,23 @@ class mlflow_training():
             target_and_features = [target] + features
             
             df_tf = data[target_and_features].copy()
+            
+            
+            df_tf_transformed = self.transform_rawdata(data=df_tf, transformation_dict=transformation_dict)
+            dft = self.descriptiontable(df_tf_transformed)
+            
+            dft_original = self.descriptiontable(df_tf)
+            
+            
 
-            
-            dft = self.descriptiontable(df_tf)
-            
-            
-
-            new_minmaxscalingdf = self.make_minmaxscalingtable_by_descriptiontable(
+            new_minmaxscalingdf_scaled = self.make_minmaxscalingtable_by_descriptiontable(
                 descriptiontable=dft, 
                 expand_by=scaler_expand_by)
+            
+            
+            new_minmaxscalingdf_original = self.make_minmaxscalingtable_by_descriptiontable(
+                descriptiontable=dft_original, 
+                expand_by=None)
 
 
             # target_minmaxscaling = list(target_minmaxscaling)
@@ -302,18 +321,21 @@ class mlflow_training():
             # target_minmax_list = target_minmax_list.reshape(-1, 1)
             
             
-            data_minmax_dict = self.create_data_minmax_dict(new_minmaxscalingdf)
+            # scaled
+            data_minmax_dict_scaled = self.create_data_minmax_dict(new_minmaxscalingdf_scaled)
+            feature_minmax_dict_scaled = self.create_data_minmax_dict(new_minmaxscalingdf_scaled.loc[:, features])
+            target_minmax_dict_scaled = self.create_data_minmax_dict(new_minmaxscalingdf_scaled.loc[:, target])
             
-            feature_minmax_dict = self.create_data_minmax_dict(new_minmaxscalingdf.loc[:, features])
-            target_minmax_dict = self.create_data_minmax_dict(new_minmaxscalingdf.loc[:, target])
+            # original
+            feature_minmax_dict_original = self.create_data_minmax_dict(new_minmaxscalingdf_original.loc[:, features])
             
             
-            feature_dtypes_dict = self.create_data_dtype_dict(new_minmaxscalingdf.loc[:,features])
+            feature_dtypes_dict = self.create_data_dtype_dict(new_minmaxscalingdf_scaled.loc[:,features])
             
             
             print("MinMaxScaler Features")
             feature_minmaxscaler = MinMaxScaler()
-            feature_minmaxscaler.fit(new_minmaxscalingdf.loc[:, features])
+            feature_minmaxscaler.fit(new_minmaxscalingdf_scaled.loc[:, features])
             fitted_df_features = feature_minmaxscaler.transform(data.loc[:,features])
 
             # print(f"fitted_df_features: {fitted_df_features}")
@@ -322,7 +344,7 @@ class mlflow_training():
             
             print("MinMaxScaler Target")
             target_minmaxscaler = MinMaxScaler()
-            target_minmax_list = list(new_minmaxscalingdf.loc[:, target])
+            target_minmax_list = list(new_minmaxscalingdf_scaled.loc[:, target])
             target_minmax_list = np.array(target_minmax_list)
             target_minmax_list = target_minmax_list.reshape(-1, 1)
             
@@ -367,10 +389,12 @@ class mlflow_training():
                 features_test=features_test,
                 target_test=target_test,
                 signature=signature,
-                data_minmax_dict=data_minmax_dict,
-                feature_minmax_dict=feature_minmax_dict,
-                target_minmax_dict=target_minmax_dict,
+                data_minmax_dict=data_minmax_dict_scaled,
+                feature_minmax_dict_original=feature_minmax_dict_original,
+                feature_minmax_dict=feature_minmax_dict_scaled,
+                target_minmax_dict=target_minmax_dict_scaled,
                 feature_dtypes_dict=feature_dtypes_dict,
+                transformation_dict=transformation_dict,
                 model_name=MLFlow_Experiment,
                 model_typ=model_typ
                 )
