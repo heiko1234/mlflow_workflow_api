@@ -44,10 +44,10 @@ data["Yield"] = data["BiologicalMaterial02"]*0.4+data["BiologicalMaterial06"]*0.
 data
 
 
-55*0.4+45*0.2+204*0.04   # 39.16
-54*0.4+55.5*0.2+215*0.04  # 41.3
-52*0.4+50.5*0.2+210*0.04  # 39.3
-58*0.4+59*0.2+209*0.04    # 43.36
+# 55*0.4+45*0.2+204*0.04   # 39.16
+# 54*0.4+55.5*0.2+215*0.04  # 41.3
+# 52*0.4+50.5*0.2+210*0.04  # 39.3
+# 58*0.4+59*0.2+209*0.04    # 43.36
 
 
 
@@ -56,11 +56,13 @@ data
 
 
 target = "Yield"
+features = ["BiologicalMaterial02", "BiologicalMaterial06", "ManufacturingProcess06"]
+
+
+
 
 features = ["BioMaterial1", "BioMaterial2", "ProcessValue1"]
 
-
-features = ["BiologicalMaterial02", "BiologicalMaterial06", "ManufacturingProcess06"]
 
 
 # /home/heiko/Schreibtisch/Repos/dash_apps/mlflow_workflow_app/experimental/mflow_workflow/how_to_use_mlflowclass.py
@@ -87,6 +89,8 @@ data[features]
 
 # Load the model
 my_mlflow_model = mlflow_model(model_name="project_name", staging="Staging")
+
+my_mlflow_model = mlflow_model(model_name="project_name", staging="Production")
 
 
 
@@ -127,13 +131,24 @@ my_mlflow_model.get_target_minmaxscaler()
 my_mlflow_model.make_predictions(df)
 
 
+
+
+
+
 # the other data set
 
 my_mlflow_model.get_model_artifact(artifact="feature_dtypes.json")
 my_mlflow_model.get_model_artifact(artifact="transformation_dict.json")
 
 my_mlflow_model.transform_rawdata(data)
-my_mlflow_model.calculate_transform_rawdata(data)
+my_mlflow_model.scale_and_transform_rawdata(data)
+#    BiologicalMaterial02  BiologicalMaterial06  ManufacturingProcess06
+# 0              0.416252              0.185245                0.179219
+# 1              0.348504              0.660296                0.754849
+# 2              0.246882              0.434081                0.562972
+# 3              0.619496              0.750781                0.499013
+# 4              0.687244              0.682917                0.179219
+
 my_mlflow_model.make_predictions(data)
 
 data["prediction"] = my_mlflow_model.make_predictions(data)

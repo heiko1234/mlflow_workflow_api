@@ -336,7 +336,7 @@ class mlflow_training():
             print("MinMaxScaler Features")
             feature_minmaxscaler = MinMaxScaler()
             feature_minmaxscaler.fit(new_minmaxscalingdf_scaled.loc[:, features])
-            fitted_df_features = feature_minmaxscaler.transform(data.loc[:,features])
+            fitted_df_features = feature_minmaxscaler.transform(df_tf_transformed.loc[:,features])
 
             # print(f"fitted_df_features: {fitted_df_features}")
             
@@ -350,7 +350,7 @@ class mlflow_training():
             
             
             target_minmaxscaler.fit(target_minmax_list)
-            fitted_target = target_minmaxscaler.transform(data.loc[:,[target]])
+            fitted_target = target_minmaxscaler.transform(df_tf_transformed.loc[:,[target]])
             
             # print(f"fitted_target: {fitted_target}")         
 
