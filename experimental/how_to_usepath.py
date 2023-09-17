@@ -8,9 +8,13 @@
 
 
 
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 from upath import UPath
+
 
 from azure.identity import DefaultAzureCredential
 
@@ -18,10 +22,16 @@ from azure.identity import DefaultAzureCredential
 credential = DefaultAzureCredential(exclude_environment_credential=True)
 
 
+credential = os.getenv("AZURE_STORAGE_KEY")
+credential
+
+
+
+
 path = UPath("az://chemical-data/chemical-data/", account_name="devstoreaccount1", anon=True, credential=credential)
 
 
-[p for p in path.iterdir()]
+[str(p) for p in path.iterdir()]
 
 
 

@@ -43,6 +43,14 @@ fastparquet = "^2023.8.0"
 adlfs = "^2023.8.0"
 
 
+
+duckdb = "^0.8.1"
+universal-pathlib = "^0.0.23"
+setuptools = "^68.0.0"
+
+
+
+
 [tool.poetry.group.dev.dependencies]
 bandit = "^1.7.5"
 black = "^23.7.0"

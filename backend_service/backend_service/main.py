@@ -7,7 +7,7 @@ import yaml
 import numpy as np
 import pandas as pd
 
-from os import getenv
+
 from dotenv import load_dotenv
 from datetime import datetime
 
@@ -25,6 +25,10 @@ from pydantic import BaseModel, Field, validator
 
 
 import polars as pl
+
+from upath import UPath
+
+
 
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient, ContainerClient, BlobClient, BlobBlock
@@ -54,7 +58,7 @@ def read_configuration(configuration_file_path):
 
 load_dotenv()
 
-local_run = getenv("LOCAL_RUN", False)
+local_run = os.getenv("LOCAL_RUN", False)
 
 
 
@@ -84,10 +88,52 @@ def testdata():
 
 
 
+
+
+@app.get("/list_available_accounts")
+def get_available_blobs():
+    
+    local_run = os.getenv("LOCAL_RUN", False)
+    
+    if local_run:
+        account = "devstoreaccount1"
+        
+    else:
+        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        
+    return account
+
+
+
+@app.get("/list_available_blobs")
+def get_available_blobs():
+    
+    local_run = os.getenv("LOCAL_RUN", False)
+    
+    if local_run:
+        account = "devstoreaccount1"
+        credential = os.getenv("AZURE_STORAGE_KEY")
+
+        
+    else:
+        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
+    
+    
+    path = UPath("az://", account_name=account, anon=True, credential=credential)
+
+
+    output = [str(p).split("/")[-1] for p in path.iterdir()]
+    
+    return output
+
+
+
+
 @app.post("/data_statistics")
 def post_data_statistics(query_input: Data_load):
     
-    local_run = getenv("LOCAL_RUN", False)
+    local_run = os.getenv("LOCAL_RUN", False)
     
     if local_run:
     
