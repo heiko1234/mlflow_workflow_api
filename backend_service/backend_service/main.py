@@ -18,9 +18,24 @@ from fastapi import FastAPI, Depends, Request
 from pydantic import BaseModel, Field, validator
 
 
-from backend_service.utilities.mlflow_training_class import mlflow_training
-from backend_service.utilities.mlflow_predict_class import mlflow_model
-from backend_service.utilities.data_preprocess import data_preprocessing
+# from backend_service.utilities.mlflow_training_class import mlflow_training
+# from backend_service.utilities.mlflow_predict_class import mlflow_model
+# from backend_service.utilities.data_preprocess import data_preprocessing
+
+
+
+import polars as pl
+
+from azure.identity import DefaultAzureCredential
+from azure.storage.blob import BlobServiceClient, ContainerClient, BlobClient, BlobBlock
+
+
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
 
 
 
@@ -42,28 +57,12 @@ load_dotenv()
 local_run = getenv("LOCAL_RUN", False)
 
 
-# def get_config(local_run: bool):
+
+class Data_load(BaseModel):
+    blobcontainer: str = Field(example="chemical-data")
+    subcontainer: str = Field(example="chemical-data")
+    file_name: str = Field(example="ChemicalManufacturingProcess.parquet")
     
-    
-#     load_dotenv()
-#     local_run = getenv("LOCAL_RUN", False)
-
-#     if local_run:
-#         try:
-#             config = read_configuration("./configuration/local_run.yaml")
-#         except Exception as e:
-#             print(e)
-#             config = read_configuration("./backend_service/configuration/production_run.yaml")
-#     else:
-#         try:
-#             config = read_configuration("configuration/production_run.yaml")
-#         except Exception as e:
-#             print(e)
-#             config = read_configuration("./backend_service/configuration/production_run.yaml")
-        
-#     return config
-
-
 
 
 app = FastAPI()
@@ -85,6 +84,41 @@ def testdata():
 
 
 
+@app.post("/data_statistics")
+def post_data_statistics(query_input: Data_load):
+    
+    local_run = getenv("LOCAL_RUN", False)
+    
+    if local_run:
+    
+        account = "devstoreaccount1"
+        credential = os.getenv("AZURE_STORAGE_KEY")
+        credential
+        
+    else:
+
+        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        # credential = os.environ["AZURE_STORAGE_KEY"]
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
+        
+    blobcontainer=query_input.blobcontainer
+    subcontainer=query_input.subcontainer
+    file=query_input.file_name
+
+    master_data = pl.read_parquet(
+        f"az://{blobcontainer}/{subcontainer}/{file}",
+        storage_options={"account_name": account, "credential": credential}
+        )
+    df = master_data.to_pandas()
+
+    dft=df.describe().reset_index(drop = True).T
+    dft = dft.reset_index(drop=False)
+    dft.columns= ["description", "counts", "mean", "std", "min", "25%", "50%", "75%", "max"]
+    dft["nan"]=df.isna().sum().values
+
+    output_df=dft.round(2).to_json(orient='split')
+    
+    return output_df
 
 
 
