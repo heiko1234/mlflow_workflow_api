@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field, validator
 
 
 from backend_service.utilities.mlflow_training_class import mlflow_training
-from backend_service.utilities.mlflow_class import mlflow_model
+from backend_service.utilities.mlflow_predict_class import mlflow_model
 from backend_service.utilities.data_preprocess import data_preprocessing
 
 
