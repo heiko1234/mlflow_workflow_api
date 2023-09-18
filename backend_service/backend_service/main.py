@@ -63,10 +63,10 @@ local_run = os.getenv("LOCAL_RUN", False)
 
 
 class Data_load(BaseModel):
-    blobcontainer: str = Field(example="chemical-data")
-    subcontainer: str = Field(example="chemical-data")
-    file_name: str = Field(example="ChemicalManufacturingProcess.parquet")
-    
+    blobcontainer: str | None = Field(example="chemical-data")
+    subcontainer: str | None = Field(example="chemical-data")
+    file_name: str | None = Field(example="ChemicalManufacturingProcess.parquet")
+    account: str | None = Field(example="devstoreaccount1")
 
 
 app = FastAPI()
@@ -92,111 +92,189 @@ def testdata():
 
 @app.get("/list_available_accounts")
 def get_available_blobs():
-    
+
     local_run = os.getenv("LOCAL_RUN", False)
-    
+
     if local_run:
         account = "devstoreaccount1"
-        
+
     else:
         account = os.environ["AZURE_STORAGE_ACCOUNT"]
-        
+
     return account
 
 
 
 @app.get("/list_available_blobs")
-def get_available_blobs():
-    
+def get_available_blobs(query_input: Data_load):
+
     local_run = os.getenv("LOCAL_RUN", False)
-    
+
     if local_run:
         account = "devstoreaccount1"
         credential = os.getenv("AZURE_STORAGE_KEY")
 
-        
+
     else:
-        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        # account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        account=query_input.account
         credential = DefaultAzureCredential(exclude_environment_credential=True)
-    
-    
+
+
     path = UPath("az://", account_name=account, anon=True, credential=credential)
 
 
     output = [str(p).split("/")[-1] for p in path.iterdir()]
-    
+
     return output
+
+
+@app.get("/list_available_subblobs")
+def get_available_subblobs(query_input: Data_load):
+
+    local_run = os.getenv("LOCAL_RUN", False)
+
+    if local_run:
+        account = "devstoreaccount1"
+        credential = os.getenv("AZURE_STORAGE_KEY")
+
+
+    else:
+        # account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        account=query_input.account
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
+
+    blobcontainer=query_input.blobcontainer
+
+
+    path = UPath(f"az://{blobcontainer}", account_name=account, anon=True, credential=credential)
+
+
+    output = [str(p).split("/")[-1] for p in path.iterdir()]
+
+    return output
+
+
+
+@app.get("/list_available_files")
+def get_available_files(query_input: Data_load):
+
+    local_run = os.getenv("LOCAL_RUN", False)
+
+    if local_run:
+        account = "devstoreaccount1"
+        credential = os.getenv("AZURE_STORAGE_KEY")
+
+
+    else:
+        # account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        account=query_input.account
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
+
+    blobcontainer=query_input.blobcontainer
+    subcontainer=query_input.subcontainer
+
+
+    path = UPath(f"az://{blobcontainer}/{subcontainer}", account_name=account, anon=True, credential=credential)
+
+
+    output = [str(p).split("/")[-1] for p in path.iterdir()]
+
+    return output
+
 
 
 
 
 @app.post("/data_statistics")
 def post_data_statistics(query_input: Data_load):
-    
+
     local_run = os.getenv("LOCAL_RUN", False)
-    
+
     if local_run:
-    
+
         account = "devstoreaccount1"
         credential = os.getenv("AZURE_STORAGE_KEY")
         credential
-        
+
     else:
 
         account = os.environ["AZURE_STORAGE_ACCOUNT"]
         # credential = os.environ["AZURE_STORAGE_KEY"]
         credential = DefaultAzureCredential(exclude_environment_credential=True)
-        
+
     blobcontainer=query_input.blobcontainer
     subcontainer=query_input.subcontainer
     file=query_input.file_name
 
-    master_data = pl.read_parquet(
-        f"az://{blobcontainer}/{subcontainer}/{file}",
-        storage_options={"account_name": account, "credential": credential}
-        )
-    df = master_data.to_pandas()
+    if (blobcontainer is not None) and (subcontainer is not None) and (file is not None):
 
-    dft=df.describe().reset_index(drop = True).T
-    dft = dft.reset_index(drop=False)
-    dft.columns= ["description", "counts", "mean", "std", "min", "25%", "50%", "75%", "max"]
-    dft["nan"]=df.isna().sum().values
+        master_data = pl.read_parquet(
+            f"az://{blobcontainer}/{subcontainer}/{file}",
+            storage_options={"account_name": account, "credential": credential}
+            )
+        df = master_data.to_pandas()
 
-    output_df=dft.round(2).to_json(orient='split')
-    
+        dft=df.describe().reset_index(drop = True).T
+        dft = dft.reset_index(drop=False)
+        dft.columns= ["description", "counts", "mean", "std", "min", "25%", "50%", "75%", "max"]
+        dft["nan"]=df.isna().sum().values
+
+
+        digits = 2
+        output_df=dft.round(digits).to_json(orient='split')
+
+    else:
+        output_df = None
+
     return output_df
 
 
 
-@app.post("/make_model")
-def make_model():
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# @app.post("/make_model")
+# def make_model():
     
-    # TODO: Get data from database from 
-    # data = load_data()
+#     # TODO: Get data from database from 
+#     # data = load_data()
     
     
 
-    # data_transformation = {"Yield": "no transformation", "BioMaterial1": "log", "BioMaterial2": "sqrt", "ProcessValue1": "1/x"}
+#     # data_transformation = {"Yield": "no transformation", "BioMaterial1": "log", "BioMaterial2": "sqrt", "ProcessValue1": "1/x"}
 
 
-    # data_preprocessed= data_preprocessing(df=data, transformation_dict=data_transformation)
+#     # data_preprocessed= data_preprocessing(df=data, transformation_dict=data_transformation)
 
 
-    # mlflow_training_obj = mlflow_training(model_name="Project_name")
+#     # mlflow_training_obj = mlflow_training(model_name="Project_name")
 
 
-    # mlflow_training_obj.make_model(
-    #     data=data,
-    #     target="Yield",
-    #     features=["BiologicalMaterial02", "BiologicalMaterial06", "ManufacturingProcess06"],
-    #     test_size = 0.2,
-    #     scaler_expand_by="std",
-    #     model_name="Project_name",
-    #     model_parameter=None,
-    #     model_typ="linear_regression"
-    #     )
+#     # mlflow_training_obj.make_model(
+#     #     data=data,
+#     #     target="Yield",
+#     #     features=["BiologicalMaterial02", "BiologicalMaterial06", "ManufacturingProcess06"],
+#     #     test_size = 0.2,
+#     #     scaler_expand_by="std",
+#     #     model_name="Project_name",
+#     #     model_parameter=None,
+#     #     model_typ="linear_regression"
+#     #     )
     
-    return None
+#     return None
 
 
 
