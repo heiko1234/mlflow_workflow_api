@@ -105,7 +105,7 @@ def get_available_blobs():
 
 
 
-@app.get("/list_available_blobs")
+@app.post("/list_available_blobs")
 def get_available_blobs(query_input: Data_load):
 
     local_run = os.getenv("LOCAL_RUN", False)
@@ -129,7 +129,7 @@ def get_available_blobs(query_input: Data_load):
     return output
 
 
-@app.get("/list_available_subblobs")
+@app.post("/list_available_subblobs")
 def get_available_subblobs(query_input: Data_load):
 
     local_run = os.getenv("LOCAL_RUN", False)
@@ -156,7 +156,7 @@ def get_available_subblobs(query_input: Data_load):
 
 
 
-@app.get("/list_available_files")
+@app.post("/list_available_files")
 def get_available_files(query_input: Data_load):
 
     local_run = os.getenv("LOCAL_RUN", False)
@@ -193,9 +193,10 @@ def post_data_statistics(query_input: Data_load):
 
     if local_run:
 
-        account = "devstoreaccount1"
+        # account = "devstoreaccount1"
+        account=query_input.account
         credential = os.getenv("AZURE_STORAGE_KEY")
-        credential
+
 
     else:
 
@@ -209,6 +210,7 @@ def post_data_statistics(query_input: Data_load):
 
     if (blobcontainer is not None) and (subcontainer is not None) and (file is not None):
 
+        print("blobcontainer, subcontainer, file for data statistics")
         master_data = pl.read_parquet(
             f"az://{blobcontainer}/{subcontainer}/{file}",
             storage_options={"account_name": account, "credential": credential}
@@ -223,6 +225,8 @@ def post_data_statistics(query_input: Data_load):
 
         digits = 2
         output_df=dft.round(digits).to_json(orient='split')
+
+        print("data statistics done")
 
     else:
         output_df = None

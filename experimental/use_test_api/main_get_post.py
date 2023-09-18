@@ -15,7 +15,8 @@ from experimental.api_call_clients import APIBackendClient
 data_statistics_dict = {
     "blobcontainer": "chemical-data",
     "subcontainer": "chemical-data",
-    "file_name": "ChemicalManufacturingProcess.parquet"
+    "file_name": "ChemicalManufacturingProcess.parquet",
+    "account": "devstoreaccount1"
     }
 
 
