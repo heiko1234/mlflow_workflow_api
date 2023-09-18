@@ -69,6 +69,23 @@ class Data_load(BaseModel):
     account: str | None = Field(example="devstoreaccount1")
 
 
+class Data_load_series(BaseModel):
+    blobcontainer: str | None = Field(example="chemical-data")
+    subcontainer: str | None = Field(example="chemical-data")
+    file_name: str | None = Field(example="ChemicalManufacturingProcess.parquet")
+    account: str | None = Field(example="devstoreaccount1")
+    column_name: str | None = Field(example="Yield")
+
+
+class Data_load_selected_features(BaseModel):
+    blobcontainer: str | None = Field(example="chemical-data")
+    subcontainer: str | None = Field(example="chemical-data")
+    file_name: str | None = Field(example="ChemicalManufacturingProcess.parquet")
+    account: str | None = Field(example="devstoreaccount1")
+    features: List[str] | None = Field(example=["BioMaterial1", "BioMaterial2", "ProcessValue1"])
+
+
+
 app = FastAPI()
 
 
@@ -236,14 +253,192 @@ def post_data_statistics(query_input: Data_load):
 
 
 
+@app.post("/data_statistics_selected_features")
+def post_data_statistics(query_input: Data_load_selected_features):
+
+    local_run = os.getenv("LOCAL_RUN", False)
+
+    if local_run:
+
+        # account = "devstoreaccount1"
+        account=query_input.account
+        credential = os.getenv("AZURE_STORAGE_KEY")
+
+
+    else:
+
+        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        # credential = os.environ["AZURE_STORAGE_KEY"]
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
+
+    blobcontainer=query_input.blobcontainer
+    subcontainer=query_input.subcontainer
+    file=query_input.file_name
+    features = query_input.features
+
+    if (blobcontainer is not None) and (subcontainer is not None) and (file is not None):
+
+        print("blobcontainer, subcontainer, file for data statistics")
+        master_data = pl.read_parquet(
+            f"az://{blobcontainer}/{subcontainer}/{file}",
+            storage_options={"account_name": account, "credential": credential}
+            )
+        df = master_data.to_pandas()
+
+        df = df.loc[:,features]
+
+        dft=df.describe().reset_index(drop = True).T
+        dft = dft.reset_index(drop=False)
+        dft.columns= ["description", "counts", "mean", "std", "min", "25%", "50%", "75%", "max"]
+        dft["nan"]=df.isna().sum().values
+
+
+        digits = 2
+        output_df=dft.round(digits).to_json(orient='split')
+
+        print("data statistics done")
+
+    else:
+        output_df = None
+
+    return output_df
 
 
 
 
 
+@app.post("/data_columns")
+def post_data_statistics(query_input: Data_load):
+
+    local_run = os.getenv("LOCAL_RUN", False)
+
+    if local_run:
+
+        # account = "devstoreaccount1"
+        account=query_input.account
+        credential = os.getenv("AZURE_STORAGE_KEY")
+
+
+    else:
+
+        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        # credential = os.environ["AZURE_STORAGE_KEY"]
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
+
+    blobcontainer=query_input.blobcontainer
+    subcontainer=query_input.subcontainer
+    file=query_input.file_name
+
+    if (blobcontainer is not None) and (subcontainer is not None) and (file is not None):
+
+        print("blobcontainer, subcontainer, file for data statistics")
+        master_data = pl.read_parquet(
+            f"az://{blobcontainer}/{subcontainer}/{file}",
+            storage_options={"account_name": account, "credential": credential}
+            )
+        df = master_data.to_pandas()
+
+        df_cnames = list(df.columns)
+
+    else:
+        df_cnames = None
+
+    return df_cnames
 
 
 
+
+@app.post("/data_series")
+def post_data_statistics(query_input: Data_load_series):
+
+    local_run = os.getenv("LOCAL_RUN", False)
+
+    if local_run:
+
+        # account = "devstoreaccount1"
+        account=query_input.account
+        credential = os.getenv("AZURE_STORAGE_KEY")
+
+
+    else:
+
+        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        # credential = os.environ["AZURE_STORAGE_KEY"]
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
+
+    blobcontainer=query_input.blobcontainer
+    subcontainer=query_input.subcontainer
+    file=query_input.file_name
+
+    if (blobcontainer is not None) and (subcontainer is not None) and (file is not None):
+
+        print("blobcontainer, subcontainer, file for data statistics")
+        master_data = pl.read_parquet(
+            f"az://{blobcontainer}/{subcontainer}/{file}",
+            storage_options={"account_name": account, "credential": credential}
+            )
+        df = master_data.to_pandas()
+
+        column_name=query_input.column_name
+
+        df_output = df.loc[:,column_name]
+
+    else:
+        df_output = None
+
+    return df_output
+
+
+
+
+@app.post("/data_target_correlation")
+def post_data_statistics(query_input: Data_load_series):
+
+    local_run = os.getenv("LOCAL_RUN", False)
+
+    if local_run:
+
+        # account = "devstoreaccount1"
+        account=query_input.account
+        credential = os.getenv("AZURE_STORAGE_KEY")
+
+
+    else:
+
+        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        # credential = os.environ["AZURE_STORAGE_KEY"]
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
+
+    blobcontainer=query_input.blobcontainer
+    subcontainer=query_input.subcontainer
+    file=query_input.file_name
+    column_name=query_input.column_name
+
+    if (blobcontainer is not None) and (subcontainer is not None) and (file is not None):
+
+        print("blobcontainer, subcontainer, file for data statistics")
+        master_data = pl.read_parquet(
+            f"az://{blobcontainer}/{subcontainer}/{file}",
+            storage_options={"account_name": account, "credential": credential}
+            )
+        df = master_data.to_pandas()
+
+        name_of_target = column_name
+
+        correlations = []
+        for i in df.columns:
+            if i != name_of_target:
+                corr = np.corrcoef(df[name_of_target], df[i])[0, 1]
+                correlations.append(corr)
+            else:
+                correlations.append(1)
+
+        correlations = [round(i, 4) for i in correlations]
+
+        return correlations
+
+    else:
+        return None
 
 
 
