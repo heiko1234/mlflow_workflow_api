@@ -7,9 +7,9 @@ authors = ["Heiko Kulinna <Heikokulinna@gmx.de>"]
 
 
 
-# packages = [{
-#    include='backend_service'
-#    }]
+packages=[
+    {include='backend_service'},
+]
 
 
 [tool.poetry.dependencies]

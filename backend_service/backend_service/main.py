@@ -20,8 +20,9 @@ from pydantic import BaseModel, Field, validator
 
 # from backend_service.utilities.mlflow_training_class import mlflow_training
 # from backend_service.utilities.mlflow_predict_class import mlflow_model
-# from backend_service.utilities.data_preprocess import data_preprocessing
+# from backend_service.backend_service.utilities.data_preprocess import data_preprocessing
 
+from backend_service.utilities.data_preprocess import data_preprocessing
 
 
 import polars as pl
@@ -46,10 +47,10 @@ load_dotenv()
 
 
 def read_configuration(configuration_file_path):
-    
+
     with open(configuration_file_path) as file:
         config = yaml.full_load(file)
-        
+
     return config
 
 
@@ -84,6 +85,16 @@ class Data_load_selected_features(BaseModel):
     account: str | None = Field(example="devstoreaccount1")
     features: List[str] | None = Field(example=["BioMaterial1", "BioMaterial2", "ProcessValue1"])
 
+
+class Data_load_and_clean(BaseModel):
+    blobcontainer: str | None = Field(example="chemical-data")
+    subcontainer: str | None = Field(example="chemical-data")
+    file_name: str | None = Field(example="ChemicalManufacturingProcess.parquet")
+    account: str | None = Field(example="devstoreaccount1")
+    features: List[str] | None = Field(example=["BioMaterial1", "BioMaterial2", "ProcessValue1"])
+    spc_cleaning_dict: Dict[str, Union[str, int, float]] | None = Field(example={"BioMaterial1": "no cleaning", "BioMaterial2": "remove data", "ProcessValue1": 0.5})
+    limits_dict: Dict[str, Dict[str, Union[str, int, float]]] | None = Field(example={"BioMaterial1": {"min": 10, "max": 20}})
+    transformation_dict: Dict[str, str] | None = Field(example={"Yield": "no transformation", "BioMaterial1": "log", "BioMaterial2": "sqrt", "ProcessValue1": "1/x"})
 
 
 app = FastAPI()
@@ -254,7 +265,7 @@ def post_data_statistics(query_input: Data_load):
 
 
 @app.post("/data_statistics_selected_features")
-def post_data_statistics(query_input: Data_load_selected_features):
+def post_data_statistics_selected_features(query_input: Data_load_selected_features):
 
     local_run = os.getenv("LOCAL_RUN", False)
 
@@ -308,7 +319,7 @@ def post_data_statistics(query_input: Data_load_selected_features):
 
 
 @app.post("/data_columns")
-def post_data_statistics(query_input: Data_load):
+def post_data_columns(query_input: Data_load):
 
     local_run = os.getenv("LOCAL_RUN", False)
 
@@ -349,7 +360,7 @@ def post_data_statistics(query_input: Data_load):
 
 
 @app.post("/data_series")
-def post_data_statistics(query_input: Data_load_series):
+def post_data_series(query_input: Data_load_series):
 
     local_run = os.getenv("LOCAL_RUN", False)
 
@@ -439,6 +450,59 @@ def post_data_statistics(query_input: Data_load_series):
 
     else:
         return None
+
+
+
+
+@app.post("/data_load_and_clean")
+def post_data_load_and_clean(query_input: Data_load_and_clean):
+
+    local_run = os.getenv("LOCAL_RUN", False)
+
+    if local_run:
+
+        # account = "devstoreaccount1"
+        account=query_input.account
+        credential = os.getenv("AZURE_STORAGE_KEY")
+
+
+    else:
+
+        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        # credential = os.environ["AZURE_STORAGE_KEY"]
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
+
+    blobcontainer=query_input.blobcontainer
+    subcontainer=query_input.subcontainer
+    file=query_input.file_name
+    features=query_input.features
+    spc_cleaning_dict=query_input.spc_cleaning_dict
+    limits_dict=query_input.limits_dict
+    transformation_dict=query_input.transformation_dict
+
+
+    if (blobcontainer is not None) and (subcontainer is not None) and (file is not None):
+
+        print("blobcontainer, subcontainer, file for data statistics")
+        master_data = pl.read_parquet(
+            f"az://{blobcontainer}/{subcontainer}/{file}",
+            storage_options={"account_name": account, "credential": credential}
+            )
+        df = master_data.to_pandas()
+
+        data_in_preprocessing = data_preprocessing(df = df, transformation_dict=transformation_dict)
+
+        data_in_preprocessing= data_in_preprocessing.clean_up_data(dataframe=df, features=features, spc_cleaning_dict=spc_cleaning_dict, limits_dict=limits_dict)
+
+        output_df=data_in_preprocessing.to_json(orient='split')
+
+
+        return output_df
+    
+    else:
+        return None
+
+
 
 
 

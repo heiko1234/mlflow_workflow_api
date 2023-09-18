@@ -39,11 +39,10 @@ class data_preprocessing():
     def __init__(self, df, transformation_dict):
         self.df = df
         self.transformation_dict = transformation_dict
-        
-        
-        
+
+
     def transform_rawdata(self, transformation_dict=None):
-        
+
         if transformation_dict != None:
             self.transformation_dict = transformation_dict
         for column in self.df.columns:
@@ -51,9 +50,9 @@ class data_preprocessing():
             self.df[column] = self.transform_column(column=column, transformation=transformation)
             output = self.df
         return output
-    
+
     def transform_column(self, column, transformation):
-        
+
         if transformation == "no transformation":
             data = self.df[column]
         elif transformation == "log":
@@ -68,45 +67,45 @@ class data_preprocessing():
             data = self.df[column].apply(lambda x: x**3)
         else:
             data = self.df[column]
-            
+
         return data
-    
-    
+
+
     def make_data_minmax_dict(self):
         output = {}
         for column in self.df.columns:
             output[column] = {"min": self.df[column].min(), "max": self.df[column].max()}
         return output
-    
+
     def make_data_dtypes_dict(self):
         output = {}
         for column in self.df.columns:
             output[column] = str(self.df[column].dtype)
         return output
-    
+
     def descriptiontable(self):
-        
+
         dft=self.df.describe().reset_index(drop = True).T
         dft = dft.reset_index(drop=False)
         dft.columns= ["description", "counts", "mean", "std", "min", "25%", "50%", "75%", "max"]
         dft["nan"]=self.df.isna().sum().values
-        
+
         return dft
 
 
     def make_minmaxscalingtable_by_descriptiontable(self, expand_by=None):
-        
+
         output_df = pd.DataFrame()
-        
+
         descriptiontable = self.descriptiontable()
-        
+
         if expand_by == None:
-            
+
             for row_index in range(descriptiontable.shape[0]):
                 output_df[descriptiontable.loc[row_index, "description"]] = [descriptiontable.loc[row_index, "max"], descriptiontable.loc[row_index, "min"]]
 
         elif expand_by == "std":
-                
+
                 for row_index in range(descriptiontable.shape[0]):
                     output_df[descriptiontable.loc[row_index, "description"]] = [descriptiontable.loc[row_index, "max"]+ descriptiontable.loc[row_index, "std"], descriptiontable.loc[row_index, "min"]- descriptiontable.loc[row_index, "std"]]
 
@@ -115,7 +114,7 @@ class data_preprocessing():
 
 
     def create_data_dtype_dict(self):
-        
+
         pandas_dtypes = {
             "float64": "float",
             "int64": "integer",
@@ -131,12 +130,12 @@ class data_preprocessing():
             output[element] = pandas_dtypes[str(self.df.dtypes[element])]
 
         return output
-    
-    
+
+
     def create_feature_minmax_dict(self, features, expand_by=None):
-        
+
         output = {}
-        
+
         if expand_by == None:
             for feature in features:
                 output[feature] = {"min": self.df[feature].min(), "max": self.df[feature].max()}
@@ -144,17 +143,17 @@ class data_preprocessing():
             for feature in features:
                 output[feature] = {"min": self.df[feature].min()-self.df[feature].std(), "max": self.df[feature].max()+self.df[feature].std()}
         return output
-    
+
     def create_target_minmax_dict(self, target, expand_by=None):
-        
+
         output = {}
-        
+
         if expand_by == None:
             output[target] = {"min": self.df[target].min(), "max": self.df[target].max()}
         elif expand_by == "std":
             output[target] = {"min": self.df[target].min()-self.df[target].std(), "max": self.df[target].max()+self.df[target].std()}
         return output
-    
+
     def create_feature_dtype_dict(self, features, pandas_dtypes):
         output = {}
 
@@ -165,14 +164,14 @@ class data_preprocessing():
 
 
     def create_spc_cleaning_table(self):
-        
+
         dft=self.df.describe().reset_index(drop = True).T
         dft = dft.reset_index(drop=False)
         dft.columns= ["description", "counts", "mean", "std", "min", "25%", "50%", "75%", "max"]
         dft["nan"]=self.df.isna().sum().values
-        
+
         dft = dft.drop(["25%", "50%", "75%"], axis=1)
-        
+
         dft["rule1"] = "no cleaning"
         dft["rule2"] = "no cleaning"
         dft["rule3"] = "no cleaning"
@@ -181,10 +180,9 @@ class data_preprocessing():
         dft["rule6"] = "no cleaning"
         dft["rule7"] = "no cleaning"
         dft["rule8"] = "no cleaning"
-        
+
         return dft
-    
-    
+
 
     def transform_cleaning_table_in_dict(self, cleaning_table):
         """ This function gives a dictionary of the usage of the nelson rules for each feature in the data cleaning table
@@ -195,21 +193,20 @@ class data_preprocessing():
         Returns:
             _type_: returns a dictionary with separated rules for each feature
         """
-        
+
         dict = {}
-        
+
         list_of_rules = ["rule1", "rule2", "rule3", "rule4", "rule5", "rule6", "rule7", "rule8"]
 
         for element_in_description in cleaning_table["description"].unique():
             dict[element_in_description] = {}
-            
+
             for rule in list_of_rules:
                 if rule  in cleaning_table.columns:
                     dict[element_in_description][rule] = cleaning_table.loc[cleaning_table["description"]==element_in_description][rule].values[0]
-                    
+
         return dict
-        
-        
+
 
     def update_nested_dict(self, original_dict, overwrite_dict):
         """This function updates a nested dictionary
@@ -220,14 +217,14 @@ class data_preprocessing():
         Returns:
             _type_: returns the original_dict updated with the overwrite_dict
         """
-        
-        
+
+
         for k, v in overwrite_dict.items():
             if isinstance(v, collections.abc.Mapping):
                 original_dict[k] = self.update_nested_dict(original_dict.get(k, {}), v)
             else:
                 original_dict[k] = v
-                
+
         return original_dict
 
 
@@ -251,7 +248,7 @@ class data_preprocessing():
                     for any_rule in spc_cleaning_dict[any_column].keys():
                         if spc_cleaning_dict[any_column][any_rule] != "no cleaning":
                             try:
-                                
+
                                 # print(f"any_column: {any_column}")
                                 # print(f"any_rule: {any_rule}")
                                 # print(dataframe.loc[eval(any_rule+"(original=dataframe[any_column])"), any_column])
@@ -293,15 +290,14 @@ class data_preprocessing():
             else:
                 print(f"column {each_column} not in limits_dict.keys()")
                 pass
-        return filtered_dataframe 
-    
-    
-    
+        return filtered_dataframe
+
+
     def clean_up_data(self, dataframe, features=None, spc_cleaning_dict=None, limits_dict=None):
-        
+
         if dataframe is not None:
             output_df = dataframe.copy()
-            
+
         else:
             output_df = self.df
 
@@ -314,11 +310,11 @@ class data_preprocessing():
             output_df = self.filter_dataframe_by_limits(output_df, limits_dict)
 
         output_df = output_df.reset_index(drop=True)
-        
+
         if features is not None:
             output_df = output_df[features]
 
-        return output_df    
+        return output_df
 
 
 
