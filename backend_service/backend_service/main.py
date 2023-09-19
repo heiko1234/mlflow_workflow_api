@@ -23,6 +23,8 @@ from pydantic import BaseModel, Field, validator
 # from backend_service.backend_service.utilities.data_preprocess import data_preprocessing
 
 from backend_service.utilities.data_preprocess import data_preprocessing
+from backend_service.utilities.mlflow_training_class import mlflow_training
+from backend_service.utilities.mlflow_predict_class import mlflow_model, list_all_registered_models
 
 
 import polars as pl
@@ -92,9 +94,30 @@ class Data_load_and_clean(BaseModel):
     file_name: str | None = Field(example="ChemicalManufacturingProcess.parquet")
     account: str | None = Field(example="devstoreaccount1")
     features: List[str] | None = Field(example=["BioMaterial1", "BioMaterial2", "ProcessValue1"])
-    spc_cleaning_dict: Dict[str, Union[str, int, float]] | None = Field(example={"BioMaterial1": "no cleaning", "BioMaterial2": "remove data", "ProcessValue1": 0.5})
+    spc_cleaning_dict: Dict[str, Dict[str, str]] | None = Field(example={"BioMaterial1": {"rule1": "no cleaning"}, "BioMaterial2": {"rule1":"remove data"}})
     limits_dict: Dict[str, Dict[str, Union[str, int, float]]] | None = Field(example={"BioMaterial1": {"min": 10, "max": 20}})
     transformation_dict: Dict[str, str] | None = Field(example={"Yield": "no transformation", "BioMaterial1": "log", "BioMaterial2": "sqrt", "ProcessValue1": "1/x"})
+
+
+
+class train_modeling(BaseModel):
+    blobcontainer: str | None = Field(example="chemical-data")
+    subcontainer: str | None = Field(example="chemical-data")
+    file_name: str | None = Field(example="ChemicalManufacturingProcess.parquet")
+    account: str | None = Field(example="devstoreaccount1")
+    features: List[str] | None = Field(example=["BioMaterial1", "BioMaterial2", "ProcessValue1"])
+    spc_cleaning_dict: Dict[str, Dict[str, str]] | None = Field(example={"BioMaterial1": {"rule1": "no cleaning"}, "BioMaterial2": {"rule1":"remove data"}})
+    limits_dict: Dict[str, Dict[str, Union[str, int, float]]] | None = Field(example={"BioMaterial1": {"min": 10, "max": 20}})
+    transformation_dict: Dict[str, str] | None = Field(example={"Yield": "no transformation", "BioMaterial1": "log", "BioMaterial2": "sqrt", "ProcessValue1": "1/x"})
+    target: str| None = Field(example="Yield")
+    use_model_features: List[str] | None = Field(example=["BioMaterial1", "BioMaterial2", "ProcessValue1"])
+    test_size: float | None = Field(example="0.2")
+    scaler_expand_by: str | None = Field(example="std")
+    use_model_name: str | None = Field(example="my_model_name")
+    use_model_parameter: Dict[str, Union[str, int, float]] | None = Field(example={"alpha": 0.5})
+    use_model_typ: str | None = Field(example="linear_regression")
+
+
 
 
 app = FastAPI()
@@ -130,6 +153,19 @@ def get_available_blobs():
         account = os.environ["AZURE_STORAGE_ACCOUNT"]
 
     return account
+
+
+@app.get("/list_available_models")
+def get_available_models():
+
+    # local_run = os.getenv("LOCAL_RUN", False)
+    # output = list_all_registered_models()
+
+    my_mlflow_model = mlflow_model(model_name="Project_name", staging="Staging")
+
+    output = my_mlflow_model.list_registered_models()
+
+    return output
 
 
 
@@ -542,6 +578,7 @@ def post_data_load_and_clean(query_input: Data_load_and_clean):
         output_df=data_preprocessed.to_json(orient='split')
 
 
+
         return output_df
 
     else:
@@ -550,48 +587,89 @@ def post_data_load_and_clean(query_input: Data_load_and_clean):
 
 
 
+# class train_modeling(BaseModel):
+#     blobcontainer: str | None = Field(example="chemical-data")
+#     subcontainer: str | None = Field(example="chemical-data")
+#     file_name: str | None = Field(example="ChemicalManufacturingProcess.parquet")
+#     account: str | None = Field(example="devstoreaccount1")
+#     features: List[str] | None = Field(example=["BioMaterial1", "BioMaterial2", "ProcessValue1"])
+#     spc_cleaning_dict: Dict[str, Dict[str, str]] | None = Field(example={"BioMaterial1": {"rule1": "no cleaning"}, "BioMaterial2": {"rule1":"remove data"}})
+#     limits_dict: Dict[str, Dict[str, Union[str, int, float]]] | None = Field(example={"BioMaterial1": {"min": 10, "max": 20}})
+#     transformation_dict: Dict[str, str] | None = Field(example={"Yield": "no transformation", "BioMaterial1": "log", "BioMaterial2": "sqrt", "ProcessValue1": "1/x"})
+#     target: str| None = Field(example="Yield")
+#     features: List[str] | None = Field(example=["BioMaterial1", "BioMaterial2", "ProcessValue1"])
+#     test_size: float | None = Field(example="0.2")
+#     scaler_expand_by: str | None = Field(example="std")
+#     model_name: str | None = Field(example="my_model_name")
+#     model_parameter: Dict[str, Union[str, int, float]] | None = Field(example={"alpha": 0.5})
+#     model_typ: str | None = Field(example="linear_regression")
 
 
 
-
-# @app.post("/make_model")
-# def make_model():
-    
-#     # TODO: Get data from database from 
-#     # data = load_data()
-    
-    
-
-#     # data_transformation = {"Yield": "no transformation", "BioMaterial1": "log", "BioMaterial2": "sqrt", "ProcessValue1": "1/x"}
+@app.post("/train_model")
+def train_model(query_input: train_modeling):
 
 
-#     # data_preprocessed= data_preprocessing(df=data, transformation_dict=data_transformation)
+    local_run = os.getenv("LOCAL_RUN", False)
 
+    if local_run:
+        # account = "devstoreaccount1"
+        account=query_input.account
+        credential = os.getenv("AZURE_STORAGE_KEY")
 
-#     # mlflow_training_obj = mlflow_training(model_name="Project_name")
+    else:
+        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        # credential = os.environ["AZURE_STORAGE_KEY"]
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
 
-
-#     # mlflow_training_obj.make_model(
-#     #     data=data,
-#     #     target="Yield",
-#     #     features=["BiologicalMaterial02", "BiologicalMaterial06", "ManufacturingProcess06"],
-#     #     test_size = 0.2,
-#     #     scaler_expand_by="std",
-#     #     model_name="Project_name",
-#     #     model_parameter=None,
-#     #     model_typ="linear_regression"
-#     #     )
-    
-#     return None
-
-
+    blobcontainer=query_input.blobcontainer
+    subcontainer=query_input.subcontainer
+    file=query_input.file_name
+    features=query_input.features
+    spc_cleaning_dict=query_input.spc_cleaning_dict
+    limits_dict=query_input.limits_dict
+    transformation_dict=query_input.transformation_dict
+    target=query_input.target
+    use_model_features=query_input.use_model_features
+    test_size=query_input.test_size
+    scaler_expand_by=query_input.scaler_expand_by
+    use_model_name=query_input.use_model_name
+    use_model_parameter=query_input.use_model_parameter
+    use_model_typ=query_input.use_model_typ
 
 
 
+    if (blobcontainer is not None) and (subcontainer is not None) and (file is not None):
+
+        print("blobcontainer, subcontainer, file for data statistics")
+        master_data = pl.read_parquet(
+            f"az://{blobcontainer}/{subcontainer}/{file}",
+            storage_options={"account_name": account, "credential": credential}
+            )
+        df = master_data.to_pandas()
+
+        data_in_preprocessing = data_preprocessing(df = df, transformation_dict=transformation_dict)
+
+        data_preprocessed = data_in_preprocessing.clean_up_data(dataframe=df, features=features, spc_cleaning_dict=spc_cleaning_dict, limits_dict=limits_dict)
+
+        data_preprocessed = data_preprocessing(df = data_preprocessed, transformation_dict=transformation_dict).transform_rawdata()
+
+        data_preprocessed = data_preprocessed.reset_index(drop=True)
 
 
+        mlflow_training().train_model(
+            data=data_preprocessed,
+            target=target,
+            features=use_model_features,
+            test_size = test_size,
+            scaler_expand_by=scaler_expand_by,
+            transformation_dict=transformation_dict,
+            model_name=use_model_name,
+            model_parameter=use_model_parameter,
+            model_typ=use_model_typ
+            )
 
-
+        return "Done"
 
 
 

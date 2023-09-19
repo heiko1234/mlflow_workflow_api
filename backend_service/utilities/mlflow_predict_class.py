@@ -24,10 +24,23 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def list_all_registered_models(staging="Staging"):
+
+    load_dotenv()
+
+
+    client = MlflowClient()
+
+    output = []
+    for rm in client.search_registered_models():
+        output.append(rm.name)
+
+    return output
+
 
 
 class mlflow_model():
-    
+
     def __init__(self, model_name, staging="Staging"):
 
 

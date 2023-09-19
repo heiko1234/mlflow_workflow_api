@@ -48,6 +48,8 @@ list(data.columns)
 mlflow_training_obj = mlflow_training(model_name="Project_name")
 
 
+
+
 desc_df = mlflow_training_obj.descriptiontable_with_correlation(data, target="Yield")
 desc_df
 
