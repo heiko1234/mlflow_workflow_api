@@ -36,20 +36,27 @@ from backend_service.utilities.nelson import (
 
 
 class data_preprocessing():
-    def __init__(self, df, transformation_dict):
+    def __init__(self, df, transformation_dict=None):
         self.df = df
         self.transformation_dict = transformation_dict
 
 
     def transform_rawdata(self, transformation_dict=None):
 
+
         if transformation_dict != None:
             self.transformation_dict = transformation_dict
         for column in self.df.columns:
-            transformation = self.transformation_dict[column]
+            try:
+                transformation = self.transformation_dict[column]
+            except Exception as e:
+                print(e)
+                transformation = "no transformation"
+
             self.df[column] = self.transform_column(column=column, transformation=transformation)
             output = self.df
         return output
+
 
     def transform_column(self, column, transformation):
 
@@ -77,11 +84,13 @@ class data_preprocessing():
             output[column] = {"min": self.df[column].min(), "max": self.df[column].max()}
         return output
 
+
     def make_data_dtypes_dict(self):
         output = {}
         for column in self.df.columns:
             output[column] = str(self.df[column].dtype)
         return output
+
 
     def descriptiontable(self):
 
@@ -153,6 +162,7 @@ class data_preprocessing():
         elif expand_by == "std":
             output[target] = {"min": self.df[target].min()-self.df[target].std(), "max": self.df[target].max()+self.df[target].std()}
         return output
+
 
     def create_feature_dtype_dict(self, features, pandas_dtypes):
         output = {}
