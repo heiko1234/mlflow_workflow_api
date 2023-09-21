@@ -118,6 +118,12 @@ class train_modeling(BaseModel):
     use_model_typ: str | None = Field(example="linear_regression")
 
 
+class make_prediction(BaseModel):
+    blobcontainer: str | None = Field(example="chemical-data")
+    subcontainer: str | None = Field(example="chemical-data")
+    file_name: str | None = Field(example="ChemicalManufacturingProcess.parquet")
+    account: str | None = Field(example="devstoreaccount1")
+    use_model_name: str | None = Field(example="my_model_name")
 
 
 app = FastAPI()
@@ -161,7 +167,7 @@ def get_available_models():
     # local_run = os.getenv("LOCAL_RUN", False)
     # output = list_all_registered_models()
 
-    my_mlflow_model = mlflow_model(model_name="Project_name", staging="Staging")
+    my_mlflow_model = mlflow_model(model_name="project_name", staging="Staging")
 
     output = my_mlflow_model.list_registered_models()
 
@@ -290,7 +296,7 @@ def post_data_statistics(query_input: Data_load):
         digits = 2
         output_df=dft.round(digits).to_json(orient='split')
 
-        print("data statistics done")
+        # print("data statistics done")
 
     else:
         output_df = None
@@ -343,7 +349,7 @@ def post_data_statistics_selected_features(query_input: Data_load_selected_featu
         digits = 2
         output_df=dft.round(digits).to_json(orient='split')
 
-        print("data statistics done")
+        # print("data statistics done")
 
     else:
         output_df = None
@@ -610,11 +616,88 @@ def post_data_load_and_clean(query_input: Data_load_and_clean):
 def train_model(query_input: train_modeling):
 
 
+    try:
+        local_run = os.getenv("LOCAL_RUN", False)
+
+        if local_run:
+            # account = "devstoreaccount1"
+            account=query_input.account
+            credential = os.getenv("AZURE_STORAGE_KEY")
+
+        else:
+            account = os.environ["AZURE_STORAGE_ACCOUNT"]
+            # credential = os.environ["AZURE_STORAGE_KEY"]
+            credential = DefaultAzureCredential(exclude_environment_credential=True)
+
+        # load_data
+        blobcontainer=query_input.blobcontainer
+        subcontainer=query_input.subcontainer
+        file=query_input.file_name
+
+        # preprocess the data
+        features=query_input.features
+        spc_cleaning_dict=query_input.spc_cleaning_dict
+        limits_dict=query_input.limits_dict
+        transformation_dict=query_input.transformation_dict
+
+        # make the model
+        target=query_input.target
+        test_size=query_input.test_size
+        use_model_features=query_input.use_model_features
+        scaler_expand_by=query_input.scaler_expand_by
+        use_model_name=query_input.use_model_name
+        use_model_parameter=query_input.use_model_parameter
+        use_model_typ=query_input.use_model_typ
+
+
+
+        if (blobcontainer is not None) and (subcontainer is not None) and (file is not None):
+
+            print("blobcontainer, subcontainer, file for data statistics")
+            master_data = pl.read_parquet(
+                f"az://{blobcontainer}/{subcontainer}/{file}",
+                storage_options={"account_name": account, "credential": credential}
+                )
+            df = master_data.to_pandas()
+
+            data_in_preprocessing = data_preprocessing(df = df, transformation_dict=transformation_dict)
+
+            data_preprocessed = data_in_preprocessing.clean_up_data(dataframe=df, features=features, spc_cleaning_dict=spc_cleaning_dict, limits_dict=limits_dict)
+
+            data_preprocessed = data_preprocessing(df = data_preprocessed, transformation_dict=transformation_dict).transform_rawdata()
+
+            data_preprocessed = data_preprocessed.reset_index(drop=True)
+
+
+            mlflow_training(model_name=use_model_name).make_model(
+                data=data_preprocessed,
+                target=target,
+                features=use_model_features,
+                test_size = test_size,
+                scaler_expand_by=scaler_expand_by,
+                transformation_dict=transformation_dict,
+                model_name=use_model_name,
+                model_parameter=use_model_parameter,
+                model_typ=use_model_typ
+                )
+
+            return "Done"
+
+
+    except Exception as e:
+        print(e)
+        return "Failed"
+
+
+
+@app.post("/model_validation")
+def validation_model(query: make_prediction):
+    
     local_run = os.getenv("LOCAL_RUN", False)
 
     if local_run:
         # account = "devstoreaccount1"
-        account=query_input.account
+        account=query.account
         credential = os.getenv("AZURE_STORAGE_KEY")
 
     else:
@@ -622,22 +705,11 @@ def train_model(query_input: train_modeling):
         # credential = os.environ["AZURE_STORAGE_KEY"]
         credential = DefaultAzureCredential(exclude_environment_credential=True)
 
-    blobcontainer=query_input.blobcontainer
-    subcontainer=query_input.subcontainer
-    file=query_input.file_name
-    features=query_input.features
-    spc_cleaning_dict=query_input.spc_cleaning_dict
-    limits_dict=query_input.limits_dict
-    transformation_dict=query_input.transformation_dict
-    target=query_input.target
-    use_model_features=query_input.use_model_features
-    test_size=query_input.test_size
-    scaler_expand_by=query_input.scaler_expand_by
-    use_model_name=query_input.use_model_name
-    use_model_parameter=query_input.use_model_parameter
-    use_model_typ=query_input.use_model_typ
+    blobcontainer=query.blobcontainer
+    subcontainer=query.subcontainer
+    file=query.file_name
 
-
+    use_model_name = query.use_model_name
 
     if (blobcontainer is not None) and (subcontainer is not None) and (file is not None):
 
@@ -648,28 +720,88 @@ def train_model(query_input: train_modeling):
             )
         df = master_data.to_pandas()
 
-        data_in_preprocessing = data_preprocessing(df = df, transformation_dict=transformation_dict)
+        loaded_model = mlflow_model(model_name=use_model_name, staging="Staging")
 
-        data_preprocessed = data_in_preprocessing.clean_up_data(dataframe=df, features=features, spc_cleaning_dict=spc_cleaning_dict, limits_dict=limits_dict)
+        output = loaded_model.make_predictions(data=df)
+        target_name = list(loaded_model.get_model_artifact(artifact="target_limits.json").keys())[0]
 
-        data_preprocessed = data_preprocessing(df = data_preprocessed, transformation_dict=transformation_dict).transform_rawdata()
+        df_output = pd.DataFrame()
 
-        data_preprocessed = data_preprocessed.reset_index(drop=True)
+        target_name_output = "prediction"
+
+        df_output[target_name_output] = output
+        df_output["actual"] = df[target_name]
+
+        print(df_output.head())
+
+        output_df = df_output.to_json(orient='split')
+
+        return output_df
+
+    else:
+        return None
 
 
-        mlflow_training().train_model(
-            data=data_preprocessed,
-            target=target,
-            features=use_model_features,
-            test_size = test_size,
-            scaler_expand_by=scaler_expand_by,
-            transformation_dict=transformation_dict,
-            model_name=use_model_name,
-            model_parameter=use_model_parameter,
-            model_typ=use_model_typ
+
+
+
+@app.post("/model_prediction")
+def predict_model(query: make_prediction):
+
+    local_run = os.getenv("LOCAL_RUN", False)
+
+    if local_run:
+        # account = "devstoreaccount1"
+        account=query.account
+        credential = os.getenv("AZURE_STORAGE_KEY")
+
+    else:
+        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        # credential = os.environ["AZURE_STORAGE_KEY"]
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
+
+    blobcontainer=query.blobcontainer
+    subcontainer=query.subcontainer
+    file=query.file_name
+
+    use_model_name = query.use_model_name
+
+    if (blobcontainer is not None) and (subcontainer is not None) and (file is not None):
+
+        print("blobcontainer, subcontainer, file for data statistics")
+        master_data = pl.read_parquet(
+            f"az://{blobcontainer}/{subcontainer}/{file}",
+            storage_options={"account_name": account, "credential": credential}
             )
+        df = master_data.to_pandas()
 
-        return "Done"
+        loaded_model = mlflow_model(model_name=use_model_name, staging="Staging")
+
+        output = loaded_model.make_predictions(data=df)
+        target_name = list(loaded_model.get_model_artifact(artifact="target_limits.json").keys())[0]
+
+        df_output = pd.DataFrame()
+
+        target_name_output = target_name
+
+        df_output[target_name_output] = output
+
+        output = df_output.to_json(orient='split')
+
+        return output
+
+    else:
+        return None
+
+
+
+
+
+
+
+
+
+
 
 
 
