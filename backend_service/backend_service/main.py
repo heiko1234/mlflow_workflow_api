@@ -126,6 +126,23 @@ class make_prediction(BaseModel):
     use_model_name: str | None = Field(example="my_model_name")
 
 
+
+class make_prediction_with_data(BaseModel):
+    account: str | None = Field(example="devstoreaccount1")
+    use_model_name: str | None = Field(example="my_model_name")
+    data_dict: Dict[str, Union[str, int, float]] | None = Field(example={"BioMaterial1": 10, "BioMaterial2": 20, "ProcessValue1": 30})
+
+
+
+
+class model_artifact(BaseModel):
+    account: str | None = Field(example="devstoreaccount1")
+    use_model_name: str | None = Field(example="my_model_name")
+    artifact: str | None = Field(example="target_limits.json")
+
+
+
+
 app = FastAPI()
 
 
@@ -795,11 +812,81 @@ def predict_model(query: make_prediction):
 
 
 
+@app.post("/model_prediction_send_data")
+def predict_model(query: make_prediction_with_data):
+
+    local_run = os.getenv("LOCAL_RUN", False)
+
+    if local_run:
+        # account = "devstoreaccount1"
+        account=query.account
+        credential = os.getenv("AZURE_STORAGE_KEY")
+
+    else:
+        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        # credential = os.environ["AZURE_STORAGE_KEY"]
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
+
+    if query.data_dict is not None:
+        master_data=query.data_dict
+
+        # print(master_data)
+        df = pd.DataFrame.from_dict([master_data], orient="columns").reset_index()
+
+        # print(df.head())
+
+        use_model_name = query.use_model_name
+        loaded_model = mlflow_model(model_name=use_model_name, staging="Staging")
+
+        output = loaded_model.make_predictions(data=df)
+        target_name = list(loaded_model.get_model_artifact(artifact="target_limits.json").keys())[0]
+
+        df_output = pd.DataFrame()
+
+        target_name_output = target_name
+
+        df_output[target_name_output] = output
+
+        output = df_output.to_json(orient='split')
+
+        # output = "200"
+
+
+        return output
+
+    else:
+        return None
 
 
 
+@app.post("/get_model_artifact")
+def get_model_artifact(query: model_artifact):
 
 
+    local_run = os.getenv("LOCAL_RUN", False)
+
+    if local_run:
+        # account = "devstoreaccount1"
+        account=query.account
+        credential = os.getenv("AZURE_STORAGE_KEY")
+
+    else:
+        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        # credential = os.environ["AZURE_STORAGE_KEY"]
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
+
+    use_model_name = query.use_model_name
+    artifact = query.artifact
+
+
+    loaded_model = mlflow_model(model_name=use_model_name, staging="Staging")
+
+
+
+    output = loaded_model.get_model_artifact(artifact=artifact)
+
+
+    return output
 
 
 
