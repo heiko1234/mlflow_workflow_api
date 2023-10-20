@@ -14,6 +14,10 @@
 (.venv) uvicorn main:app --reload
 
 
+# or
+(.venv) uvicorn backend_service.backend_service.main:app --reload
+
+
 
 # http://localhost:8000/docs
 

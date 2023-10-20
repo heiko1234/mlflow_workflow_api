@@ -43,6 +43,8 @@ from sklearn.ensemble import AdaBoostRegressor
 from dotenv import load_dotenv
 
 
+print("experimental training class loaded!")
+
 
 
 class mlflow_training():

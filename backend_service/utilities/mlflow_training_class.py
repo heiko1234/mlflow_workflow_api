@@ -219,7 +219,7 @@ class mlflow_training():
 
 
 
-    def mlflow_training(self, features_train, target_train, features_test, target_test, signature, data_minmax_dict, feature_minmax_dict_original, feature_minmax_dict, target_minmax_dict, feature_dtypes_dict, model_name, transformation_dict=None, model_typ="linear_regression"):
+    def mlflow_training(self, features_train, target_train, features_test, target_test, signature, data_minmax_dict, feature_minmax_dict_original, feature_minmax_dict, target_minmax_dict, feature_dtypes_dict, model_name, additional_model_dict=None, transformation_dict=None, model_typ="linear_regression"):
 
 
         if model_name is not None:
@@ -303,12 +303,16 @@ class mlflow_training():
             mlflow.log_dict(
                 transformation_dict, "model/transformation_dict.json"
             )
+            if additional_model_dict is not None:
+                mlflow.log_dict(
+                    additional_model_dict, "model/additional_model_dict.json"
+                )
 
         mlflow.end_run()
 
 
 
-    def make_model(self, data=None, target=None, features=None, test_size = 0.2, scaler_expand_by="std", transformation_dict=None, model_name=None, model_parameter=None, model_typ="linear_regression"):
+    def make_model(self, data=None, target=None, features=None, test_size = 0.2, scaler_expand_by="std", transformation_dict=None, model_name=None, additional_model_dict= None, model_parameter=None, model_typ="linear_regression"):
 
 
 
