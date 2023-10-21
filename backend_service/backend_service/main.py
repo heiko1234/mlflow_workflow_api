@@ -142,6 +142,13 @@ class model_artifact(BaseModel):
 
 
 
+class model_version(BaseModel):
+    account: str | None = Field(example="devstoreaccount1")
+    use_model_name: str | None = Field(example="my_model_name")
+    staging: str | None = Field(example="staging or production")
+
+
+
 
 app = FastAPI()
 
@@ -887,6 +894,41 @@ def get_model_artifact(query: model_artifact):
 
 
     return output
+
+
+@app.post("/get_model_version")
+def get_model_version(query: model_version):
+
+
+    local_run = os.getenv("LOCAL_RUN", False)
+
+    if local_run:
+        # account = "devstoreaccount1"
+        account=query.account
+        credential = os.getenv("AZURE_STORAGE_KEY")
+
+    else:
+        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        # credential = os.environ["AZURE_STORAGE_KEY"]
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
+
+    use_model_name = query.use_model_name
+    staging = query.staging
+
+
+    loaded_model = mlflow_model(model_name=use_model_name, staging=staging)
+
+    # output = "5"
+
+    output = loaded_model.get_model_version()
+
+    print(f"get_model_version: {output}")
+
+
+    return output
+
+
+
 
 
 
