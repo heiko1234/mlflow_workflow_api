@@ -41,18 +41,18 @@ def transform_cleaning_table_in_dict(dataframe):
     Returns:
         _type_: returns a dictionary with separated rules for each feature
     """
-    
+
     dict = {}
-    
+
     list_of_rules = ["rule1", "rule2", "rule3", "rule4", "rule5", "rule6", "rule7", "rule8"]
 
     for element_in_description in dataframe["description"].unique():
         dict[element_in_description] = {}
-        
+
         for rule in list_of_rules:
             if rule  in dataframe.columns:
                 dict[element_in_description][rule] = dataframe.loc[dataframe["description"]==element_in_description][rule].values[0]
-                
+
     return dict
 
 
@@ -78,7 +78,7 @@ def use_spc_cleaning_dict(dataframe, spc_cleaning_dict):
                 for any_rule in spc_cleaning_dict[any_column].keys():
                     if spc_cleaning_dict[any_column][any_rule] != "no cleaning":
                         try:
-                            
+
                             # print(f"any_column: {any_column}")
                             # print(f"any_rule: {any_rule}")
                             # print(dataframe.loc[eval(any_rule+"(original=dataframe[any_column])"), any_column])
@@ -116,22 +116,22 @@ def create_limits_dict(limits_table_df):
     limits_dict = {}
 
     for each_row in limits_table_df["description"]:
-        
+
         limits_dict[each_row] = {
             "mean": float(limits_table_df.loc[limits_table_df["description"]==each_row, "mean"].values[0]),
             "std": float(limits_table_df.loc[limits_table_df["description"]==each_row, "std"].values[0]),
             "min": float(limits_table_df.loc[limits_table_df["description"]==each_row, "min"].values[0]),
             "max": float(limits_table_df.loc[limits_table_df["description"]==each_row, "max"].values[0]),
         }
-        
-        
+
+
         # limits_dict.loc[each_row] = {
         #     "mean": limits_table_df.loc[each_row, "mean"],
         #     "std": limits_table_df.loc[each_row, "std"],
         #     "min": limits_table_df.loc[each_row, "min"],
         #     "max": limits_table_df.loc[each_row, "max"],
         # }
-        
+
     return limits_dict
 
 
@@ -155,16 +155,16 @@ def filter_dataframe_by_limits(dataframe, limits_dict):
         else:
             print(f"column {each_column} not in limits_dict.keys()")
             pass
-    return filtered_dataframe 
+    return filtered_dataframe
 
 
 def create_data_transformng_dict(dataframe):
-    
+
     dict = {}
-    
+
     for element_in_description in dataframe["description"].unique():
         dict[element_in_description] = dataframe.loc[dataframe["description"]==element_in_description, "transforming"].values[0]
-        
+
     return dict
 
 
@@ -177,14 +177,14 @@ def update_nested_dict(original_dict, overwrite_dict):
     Returns:
         _type_: returns the original_dict updated with the overwrite_dict
     """
-    
-    
+
+
     for k, v in overwrite_dict.items():
         if isinstance(v, collections.abc.Mapping):
             original_dict[k] = update_nested_dict(original_dict.get(k, {}), v)
         else:
             original_dict[k] = v
-            
+
     return original_dict
 
 

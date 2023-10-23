@@ -46,7 +46,7 @@ load_dotenv()
 
 model_name = "project_name"
 staging = "Staging"
-
+staging = "None"
 
 
 azure_model_dir = "models:/"
@@ -55,8 +55,10 @@ if staging == "Staging":
     artifact_path = str(PurePosixPath(azure_model_dir).joinpath(model_name, "Staging"))
 elif staging == "Production":
     artifact_path = str(PurePosixPath(azure_model_dir).joinpath(model_name, "Production"))
+elif staging == "None":
+    artifact_path = str(PurePosixPath(azure_model_dir).joinpath(model_name, "None"))
 else:
-    print("staging must be either 'Staging' or 'Production'")
+    print("staging must be either 'Staging' or 'Production', 'None'")
     raise ValueError
 
 model = mlflow.pyfunc.load_model(artifact_path)
@@ -76,6 +78,13 @@ model.metadata.get_model_info()
 # get version of model in staging
 # client = MlflowClient()
 client.get_latest_versions(name=model_name, stages=["Staging"])[0].version   # 9
+
+
+client.get_latest_versions(name=model_name, stages=["None"])[0].version   # 9
+
+
+
+client.get_latest_versions(name=model_name, stages=["Production"])[0].version   # 9
 
 
 
@@ -102,6 +111,9 @@ client.get_latest_versions(name=model_name, stages=["Staging"])[0].version   # 9
 #     name="sk-learn-random-forest-reg-model", version=3, stage="Production"
 # )
 
+
+
+# TODO: https://mlflow.org/docs/latest/model-registry.html#adding-an-mlflow-model-to-the-model-registry
 
 
 

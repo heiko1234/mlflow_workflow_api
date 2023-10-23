@@ -26,6 +26,8 @@ from backend_service.utilities.data_preprocess import data_preprocessing
 from backend_service.utilities.mlflow_training_class import mlflow_training
 from backend_service.utilities.mlflow_predict_class import mlflow_model, list_all_registered_models
 
+from backend_service.utilities.plots import validation_plot
+
 
 import polars as pl
 
@@ -716,7 +718,7 @@ def train_model(query_input: train_modeling):
 
 @app.post("/model_validation")
 def validation_model(query: make_prediction):
-    
+
     local_run = os.getenv("LOCAL_RUN", False)
 
     if local_run:
@@ -756,7 +758,7 @@ def validation_model(query: make_prediction):
         df_output[target_name_output] = output
         df_output["actual"] = df[target_name]
 
-        print(df_output.head())
+        # print(f"validation_model: {df_output.head()}")
 
         output_df = df_output.to_json(orient='split')
 
@@ -765,6 +767,61 @@ def validation_model(query: make_prediction):
     else:
         return None
 
+
+# TODO: make this work, Figure not Hashable
+# @app.post("/model_validation_graphics")
+# def validation_model_graphics(query: make_prediction):
+
+#     local_run = os.getenv("LOCAL_RUN", False)
+
+#     if local_run:
+#         # account = "devstoreaccount1"
+#         account=query.account
+#         credential = os.getenv("AZURE_STORAGE_KEY")
+
+#     else:
+#         account = os.environ["AZURE_STORAGE_ACCOUNT"]
+#         # credential = os.environ["AZURE_STORAGE_KEY"]
+#         credential = DefaultAzureCredential(exclude_environment_credential=True)
+
+#     blobcontainer=query.blobcontainer
+#     subcontainer=query.subcontainer
+#     file=query.file_name
+
+#     use_model_name = query.use_model_name
+
+#     if (blobcontainer is not None) and (subcontainer is not None) and (file is not None):
+
+#         print("blobcontainer, subcontainer, file for data statistics")
+#         master_data = pl.read_parquet(
+#             f"az://{blobcontainer}/{subcontainer}/{file}",
+#             storage_options={"account_name": account, "credential": credential}
+#             )
+#         df = master_data.to_pandas()
+
+#         loaded_model = mlflow_model(model_name=use_model_name, staging="Staging")
+
+#         output = loaded_model.make_predictions(data=df)
+#         target_name = list(loaded_model.get_model_artifact(artifact="target_limits.json").keys())[0]
+
+#         df_output = pd.DataFrame()
+
+#         target_name_output = "prediction"
+
+#         df_output[target_name_output] = output
+#         df_output["actual"] = df[target_name]
+
+#         print(f"validation_model: {df_output.head()}")
+
+
+#         fig = validation_plot(df_output["actual"], df_output["prediction"])
+
+#         print(f"validation_model: {fig}")
+
+#         return {fig: fig}
+
+#     else:
+#         return None
 
 
 
@@ -918,7 +975,6 @@ def get_model_version(query: model_version):
 
     loaded_model = mlflow_model(model_name=use_model_name, staging=staging)
 
-    # output = "5"
 
     output = loaded_model.get_model_version()
 

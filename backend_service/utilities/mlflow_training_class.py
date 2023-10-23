@@ -281,7 +281,13 @@ class mlflow_training():
             mlflow.set_tag("features", list(feature_minmax_dict.keys()))
 
             # artifacts
-            mlflow.sklearn.log_model(sk_model, "model", signature=signature)
+            mlflow.sklearn.log_model(
+                sk_model=sk_model,
+                artifact_path="model",
+                signature=signature,
+                # https://mlflow.org/docs/latest/model-registry.html#adding-an-mlflow-model-to-the-model-registry
+                registered_model_name=model_name   # direct registration of model
+                )
 
 
             mlflow.log_dict(
@@ -309,6 +315,30 @@ class mlflow_training():
                 )
 
         mlflow.end_run()
+
+
+    def transition_model_verstion_stage(self, model_name, version, stage):
+
+        client = MlflowClient()
+        client.transition_model_version_stage(
+            name=model_name, version=version, stage=stage
+        )
+
+        return "Done, transition of model version {version} to stage {stage} completed!".format(version=version, stage=stage)
+
+
+    def transition_model_stage_staging_to_production(self, model_name):
+
+        client = MlflowClient()
+        model_version_none = client.get_latest_versions(name=model_name, stages=["Staging"])[0].version
+        self.transition_model_verstion_stage(model_name=model_name, version=model_version_none, stage="Production")
+
+
+    def transition_model_stage_none_to_staging(self, model_name):
+
+        client = MlflowClient()
+        model_version_none = client.get_latest_versions(name=model_name, stages=["None"])[0].version
+        self.transition_model_verstion_stage(model_name=model_name, version=model_version_none, stage="Staging")
 
 
 
@@ -424,12 +454,18 @@ class mlflow_training():
 
             print("Model created!")
 
+            self.transition_model_stage_none_to_staging(model_name=model_name)
+
+            print("Model transitioned to staging!")
+
 
         except Exception as e:
             print(e)
             print("Model not created!")
 
         return "Done!"
+
+
 
 
 
