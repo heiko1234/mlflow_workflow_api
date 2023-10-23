@@ -563,6 +563,47 @@ def post_data_load_and_clean(query_input: Data_load):
 
 
 
+@app.post("/data_selected_features")
+def post_data_selected_features(query_input: Data_load_selected_features):
+
+    local_run = os.getenv("LOCAL_RUN", False)
+
+    if local_run:
+
+        # account = "devstoreaccount1"
+        account=query_input.account
+        credential = os.getenv("AZURE_STORAGE_KEY")
+
+
+    else:
+
+        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        # credential = os.environ["AZURE_STORAGE_KEY"]
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
+
+    blobcontainer=query_input.blobcontainer
+    subcontainer=query_input.subcontainer
+    file=query_input.file_name
+    features = query_input.features
+
+    if (blobcontainer is not None) and (subcontainer is not None) and (file is not None):
+
+        print("blobcontainer, subcontainer, file for data statistics")
+        master_data = pl.read_parquet(
+            f"az://{blobcontainer}/{subcontainer}/{file}",
+            storage_options={"account_name": account, "credential": credential}
+            )
+        df = master_data.to_pandas()
+
+        output_df = df.loc[:,features]
+
+
+    else:
+        output_df = None
+
+    return output_df
+
+
 @app.post("/data_load_and_clean")
 def post_data_load_and_clean(query_input: Data_load_and_clean):
 
