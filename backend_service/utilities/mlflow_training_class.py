@@ -280,6 +280,14 @@ class mlflow_training():
             mlflow.set_tag("target", list(target_minmax_dict.keys())[0])
             mlflow.set_tag("features", list(feature_minmax_dict.keys()))
 
+            metric_log_dict = {
+                "r2_training": train_score,
+                "r2_test": test_score,
+                "rmse": rmse,
+                "mae": mae
+                }
+
+
             # artifacts
             mlflow.sklearn.log_model(
                 sk_model=sk_model,
@@ -289,6 +297,9 @@ class mlflow_training():
                 registered_model_name=model_name   # direct registration of model
                 )
 
+            mlflow.log_dict(
+                metric_log_dict, "model/metrics.json"
+            )
 
             mlflow.log_dict(
                 data_minmax_dict, "model/data_limits.json"

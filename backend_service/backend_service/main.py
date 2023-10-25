@@ -584,24 +584,33 @@ def post_data_selected_features(query_input: Data_load_selected_features):
     blobcontainer=query_input.blobcontainer
     subcontainer=query_input.subcontainer
     file=query_input.file_name
-    features = query_input.features
+
+    # print(blobcontainer, subcontainer, file)
+
 
     if (blobcontainer is not None) and (subcontainer is not None) and (file is not None):
 
-        print("blobcontainer, subcontainer, file for data statistics")
+        # print("blobcontainer, subcontainer, file for data statistics")
         master_data = pl.read_parquet(
             f"az://{blobcontainer}/{subcontainer}/{file}",
             storage_options={"account_name": account, "credential": credential}
             )
         df = master_data.to_pandas()
 
-        output_df = df.loc[:,features]
+
+        features = query_input.features
+
+        df = df.loc[:,features]
+
+        output_df=df.to_json(orient='split')
 
 
     else:
         output_df = None
 
     return output_df
+
+
 
 
 @app.post("/data_load_and_clean")
