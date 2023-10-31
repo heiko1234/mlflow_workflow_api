@@ -325,8 +325,12 @@ class mlflow_model():
                 scale_data = transformed_data[features]
                 feature_data_scaled = feature_scaler.transform(scale_data)
                 feature_data_scaled_df = pd.DataFrame(feature_data_scaled, columns=features)
+
+
+                print(f"make predictions: prepaire for change dtypes")
                 feature_data_scaled_df = self.decode_df_mlflow_dtype(feature_data_scaled_df, dtype=feature_dtypes)
 
+                print(f"make predictions: make prediction")
                 df_predictions = self.model.predict(feature_data_scaled_df)
 
                 # print(df_predictions)

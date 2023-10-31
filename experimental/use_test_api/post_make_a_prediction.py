@@ -222,10 +222,55 @@ output
 
 
 
+# #########################
+
+df = pd.read_parquet("./data/ChemicalManufacturingProcess.parquet")
+
+data_dict = df.to_dict(orient="records")
+data_dict
+
+
+
+headers = None
+endpoint = "model_prediction_send_data"
+
+
+blobstorage_environment = "devstoreaccount1"
 
 
 
 
+
+
+data_statistics_dict = {
+    "account": blobstorage_environment,
+    "use_model_name": "project_name",
+    "data_dict": data_dict[0]
+}
+
+data_statistics_dict
+
+
+
+
+
+response = dataclient.Backendclient.execute_post(
+    headers=headers,
+    endpoint=endpoint,
+    json=data_statistics_dict
+    )
+
+response.status_code     # 200
+
+
+if response.status_code == 200:
+    output = response.json()
+
+output
+
+
+output_df = pd.read_json(output, orient='split')
+output_df.iloc[0,0]
 
 
 
