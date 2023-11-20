@@ -132,7 +132,7 @@ class make_prediction(BaseModel):
 class make_prediction_with_data(BaseModel):
     account: str | None = Field(example="devstoreaccount1")
     use_model_name: str | None = Field(example="my_model_name")
-    data_dict: Dict[str, Union[str, int, float]] | None = Field(example={"BioMaterial1": 10, "BioMaterial2": 20, "ProcessValue1": 30})
+    data_dict: List[Dict[str, Union[str, int, float]]] | Dict[str, Union[str, int, float]] | None = Field(example={"BioMaterial1": 10, "BioMaterial2": 20, "ProcessValue1": 30})
 
 
 
@@ -926,10 +926,13 @@ def predict_model(query: make_prediction):
 
 
 
+# TODO: work on this callback, not working actually
 @app.post("/model_prediction_send_data")
 def predict_model(query: make_prediction_with_data):
 
     local_run = os.getenv("LOCAL_RUN", False)
+
+    print("### local_run ###")
 
     if local_run:
         # account = "devstoreaccount1"
@@ -944,10 +947,13 @@ def predict_model(query: make_prediction_with_data):
     if query.data_dict is not None:
         master_data=query.data_dict
 
-        # print(master_data)
-        df = pd.DataFrame.from_dict([master_data], orient="columns").reset_index()
+        print(master_data)
+        if isinstance(master_data, dict):
+            df = pd.DataFrame.from_dict([master_data], orient="columns").reset_index()
+        elif isinstance(master_data, list):
+            df = pd.DataFrame.from_dict(master_data, orient="columns").reset_index()
 
-        # print(df.head())
+        print(df.head())
 
         use_model_name = query.use_model_name
         loaded_model = mlflow_model(model_name=use_model_name, staging="Staging")

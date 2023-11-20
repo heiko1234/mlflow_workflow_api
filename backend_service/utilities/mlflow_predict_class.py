@@ -185,18 +185,22 @@ class mlflow_model():
         path_to_file = self.artifact_path + "/feature_limits_unscaled.json"
         transformation_dict = mlflow.artifacts.load_dict(path_to_file)
 
+        try:
+            for feature_name in transformation_dict.keys():
 
-        for feature_name in transformation_dict.keys():
+                if transformation_dict[feature_name]["min"] > data[feature_name].min():
+                    print(f"Feature {feature_name} has a lower limit of {transformation_dict[feature_name]['min']} but the data has a lower limit of {data[feature_name].min()}")
+                    return False
 
-            if transformation_dict[feature_name]["min"] > data[feature_name].min():
-                print(f"Feature {feature_name} has a lower limit of {transformation_dict[feature_name]['min']} but the data has a lower limit of {data[feature_name].min()}")
-                return False
+                if transformation_dict[feature_name]["max"] < data[feature_name].max():
+                    print(f"Feature {feature_name} has an upper limit of {transformation_dict[feature_name]['max']} but the data has an upper limit of {data[feature_name].max()}")
+                    return False
 
-            if transformation_dict[feature_name]["max"] < data[feature_name].max():
-                print(f"Feature {feature_name} has an upper limit of {transformation_dict[feature_name]['max']} but the data has an upper limit of {data[feature_name].max()}")
-                return False
+            return True
 
-        return True
+        except BaseException as be:
+            print(f"validate_limits_features: baseexception: {be}")
+            return False
 
 
     def get_feature_minmaxscaler(self):
@@ -272,6 +276,8 @@ class mlflow_model():
 
         if valid_inputdata:
             print("Input data is valid")
+        else:
+            print("Input data are not valid")
 
         try:
             if self.validate_data_columns(data):
@@ -312,8 +318,9 @@ class mlflow_model():
         valid_inputdata = self.validate_limits_features(data)
 
         if valid_inputdata:
-            print("Input data is valid")
-
+            print("make_predictions: Input data is valid")
+        else:
+            print("make_predictions: Input data are not valid")
 
         print(f"features: {features}")
 
