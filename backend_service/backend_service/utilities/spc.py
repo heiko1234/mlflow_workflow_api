@@ -5,8 +5,15 @@ import collections
 import pandas as pd
 
 
-try:
-    from backend_service.utilities.nelson  import (
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+local_run = os.getenv("LOCAL_RUN", False)
+
+
+if local_run == "True":
+    from .nelson  import (
         rule1,
         rule2,
         rule3,
@@ -16,7 +23,7 @@ try:
         rule7,
         rule8,
     )
-except ModuleNotFoundError:
+else:
     from backend_service.utilities.nelson import (
         rule1,
         rule2,

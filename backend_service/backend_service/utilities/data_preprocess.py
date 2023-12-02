@@ -1,23 +1,41 @@
 
 
-
+import os
 import pandas as pd
 import numpy as np
 
 
 import collections
 
+from dotenv import load_dotenv
 
-from backend_service.utilities.nelson import (
-    rule1,
-    rule2,
-    rule3,
-    rule4,
-    rule5,
-    rule6,
-    rule7,
-    rule8,
-)
+load_dotenv()
+local_run = os.getenv("LOCAL_RUN", False)
+
+
+if local_run == "True":
+    from .nelson import (
+        rule1,
+        rule2,
+        rule3,
+        rule4,
+        rule5,
+        rule6,
+        rule7,
+        rule8,
+    )
+else:
+    from backend_service.utilities.nelson import (
+        rule1,
+        rule2,
+        rule3,
+        rule4,
+        rule5,
+        rule6,
+        rule7,
+        rule8,
+    )
+
 
 
 

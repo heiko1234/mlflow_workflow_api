@@ -22,11 +22,29 @@ from pydantic import BaseModel, Field, validator
 # from backend_service.utilities.mlflow_predict_class import mlflow_model
 # from backend_service.backend_service.utilities.data_preprocess import data_preprocessing
 
-from backend_service.utilities.data_preprocess import data_preprocessing
-from backend_service.utilities.mlflow_training_class import mlflow_training
-from backend_service.utilities.mlflow_predict_class import mlflow_model, list_all_registered_models
 
-from backend_service.utilities.plots import validation_plot
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+local_run = os.getenv("LOCAL_RUN", False)
+
+
+if local_run == "True":
+
+    from backend_service.backend_service.utilities.data_preprocess import data_preprocessing
+    from backend_service.backend_service.utilities.mlflow_training_class import mlflow_training
+    from backend_service.backend_service.utilities.mlflow_predict_class import mlflow_model, list_all_registered_models
+    from backend_service.backend_service.utilities.plots import validation_plot
+
+else:
+    from backend_service.utilities.data_preprocess import data_preprocessing
+    from backend_service.utilities.mlflow_training_class import mlflow_training
+    from backend_service.utilities.mlflow_predict_class import mlflow_model, list_all_registered_models
+    from backend_service.utilities.plots import validation_plot
+
+
 
 
 import polars as pl
@@ -43,8 +61,19 @@ from azure.storage.blob import BlobServiceClient, ContainerClient, BlobClient, B
 from dotenv import load_dotenv
 
 load_dotenv()
+local_run = os.getenv("LOCAL_RUN", False)
 
 
+if local_run:
+    from backend_service.backend_service.utilities.data_preprocess import data_preprocessing
+    from backend_service.backend_service.utilities.mlflow_training_class import mlflow_training
+    from backend_service.backend_service.utilities.mlflow_predict_class import mlflow_model, list_all_registered_models
+    from backend_service.backend_service.utilities.plots import validation_plot
+else:
+    from backend_service.utilities.data_preprocess import data_preprocessing
+    from backend_service.utilities.mlflow_training_class import mlflow_training
+    from backend_service.utilities.mlflow_predict_class import mlflow_model, list_all_registered_models
+    from backend_service.utilities.plots import validation_plot
 
 
 
