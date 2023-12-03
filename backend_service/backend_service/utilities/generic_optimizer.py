@@ -79,6 +79,11 @@ def lossfunction(target, X, model):
     return diff
 
 
+def bounds_from_dict(bounds_dict):
+    bounds = [[bounds_dict[element]["min"], bounds_dict[element]["max"]] for element in bounds_dict.keys()]
+    return bounds
+
+
 
 # genetic algorithm
 def genetic_algorithm(

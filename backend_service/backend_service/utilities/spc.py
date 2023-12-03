@@ -12,7 +12,7 @@ load_dotenv()
 local_run = os.getenv("LOCAL_RUN", False)
 
 
-if local_run == "True":
+if local_run == True or local_run == "True":
     from .nelson  import (
         rule1,
         rule2,

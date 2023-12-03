@@ -13,8 +13,8 @@ load_dotenv()
 local_run = os.getenv("LOCAL_RUN", False)
 
 
-if local_run == "True":
-    from .nelson import (
+if local_run == True or local_run == "True":
+    from backend_service.backend_service.utilities.nelson import (
         rule1,
         rule2,
         rule3,
@@ -25,7 +25,7 @@ if local_run == "True":
         rule8,
     )
 else:
-    from backend_service.utilities.nelson import (
+    from backend_service.backend_service.utilities.nelson import (   # backend_service
         rule1,
         rule2,
         rule3,

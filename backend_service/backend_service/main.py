@@ -30,19 +30,31 @@ from dotenv import load_dotenv
 load_dotenv()
 local_run = os.getenv("LOCAL_RUN", False)
 
+print(f"local_run of mainfile: {local_run}")
 
-if local_run == "True":
+
+if local_run == True or local_run == "True":
 
     from backend_service.backend_service.utilities.data_preprocess import data_preprocessing
     from backend_service.backend_service.utilities.mlflow_training_class import mlflow_training
     from backend_service.backend_service.utilities.mlflow_predict_class import mlflow_model, list_all_registered_models
     from backend_service.backend_service.utilities.plots import validation_plot
 
+    from backend_service.backend_service.utilities.generic_optimizer import genetic_algorithm
+    from backend_service.backend_service.utilities.generic_optimizer import makedf, lossfunction, bounds_from_dict
+
+
+
 else:
-    from backend_service.utilities.data_preprocess import data_preprocessing
-    from backend_service.utilities.mlflow_training_class import mlflow_training
-    from backend_service.utilities.mlflow_predict_class import mlflow_model, list_all_registered_models
-    from backend_service.utilities.plots import validation_plot
+    from backend_service.backend_service.utilities.data_preprocess import data_preprocessing
+    from backend_service.backend_service.utilities.mlflow_training_class import mlflow_training
+    from backend_service.backend_service.utilities.mlflow_predict_class import mlflow_model, list_all_registered_models
+    from backend_service.backend_service.utilities.plots import validation_plot
+
+
+    from backend_service.backend_service.utilities.generic_optimizer import genetic_algorithm
+    from backend_service.backend_service.utilities.generic_optimizer import makedf, lossfunction, bounds_from_dict
+
 
 
 
@@ -155,6 +167,7 @@ class make_prediction(BaseModel):
     file_name: str | None = Field(example="ChemicalManufacturingProcess.parquet")
     account: str | None = Field(example="devstoreaccount1")
     use_model_name: str | None = Field(example="my_model_name")
+    staging: str | None = Field(example="None, Staging or Production")
 
 
 
@@ -162,7 +175,7 @@ class make_prediction_with_data(BaseModel):
     account: str | None = Field(example="devstoreaccount1")
     use_model_name: str | None = Field(example="my_model_name")
     data_dict: List[Dict[str, Union[str, int, float]]] | Dict[str, Union[str, int, float]] | None = Field(example={"BioMaterial1": 10, "BioMaterial2": 20, "ProcessValue1": 30})
-
+    staging: str | None = Field(example="None, Staging or Production")
 
 
 
@@ -170,13 +183,25 @@ class model_artifact(BaseModel):
     account: str | None = Field(example="devstoreaccount1")
     use_model_name: str | None = Field(example="my_model_name")
     artifact: str | None = Field(example="target_limits.json")
+    staging: str | None = Field(example="None, Staging or Production")
 
 
 
 class model_version(BaseModel):
     account: str | None = Field(example="devstoreaccount1")
     use_model_name: str | None = Field(example="my_model_name")
-    staging: str | None = Field(example="staging or production")
+    staging: str | None = Field(example="None, Staging or Production")
+
+
+
+class make_optimization_with_data(BaseModel):
+    account: str | None = Field(example="devstoreaccount1")
+    use_model_name: str | None = Field(example="my_model_name")
+    limits_dict: Dict[str, Dict[str, Union[str, int, float]]] | None = Field(example={"BioMaterial1": {"min": 10, "max": 20}})
+    staging: str | None = Field(example="None, Staging or Production")
+    target: float | None = Field(example=45)
+
+
 
 
 
@@ -813,6 +838,10 @@ def validation_model(query: make_prediction):
     blobcontainer=query.blobcontainer
     subcontainer=query.subcontainer
     file=query.file_name
+    staging=query.staging
+
+    if staging == "None":
+        staging = "Staging"
 
     use_model_name = query.use_model_name
 
@@ -825,7 +854,7 @@ def validation_model(query: make_prediction):
             )
         df = master_data.to_pandas()
 
-        loaded_model = mlflow_model(model_name=use_model_name, staging="Staging")
+        loaded_model = mlflow_model(model_name=use_model_name, staging=staging) # "Staging")
 
         output = loaded_model.make_predictions(data=df)
         target_name = list(loaded_model.get_model_artifact(artifact="target_limits.json").keys())[0]
@@ -923,6 +952,11 @@ def predict_model(query: make_prediction):
     blobcontainer=query.blobcontainer
     subcontainer=query.subcontainer
     file=query.file_name
+    staging=query.staging
+
+    if staging == "None":
+        staging = "Staging"
+
 
     use_model_name = query.use_model_name
 
@@ -935,7 +969,7 @@ def predict_model(query: make_prediction):
             )
         df = master_data.to_pandas()
 
-        loaded_model = mlflow_model(model_name=use_model_name, staging="Staging")
+        loaded_model = mlflow_model(model_name=use_model_name, staging=staging) #"Staging")
 
         output = loaded_model.make_predictions(data=df)
         target_name = list(loaded_model.get_model_artifact(artifact="target_limits.json").keys())[0]
@@ -976,6 +1010,12 @@ def predict_model(query: make_prediction_with_data):
     if query.data_dict is not None:
         master_data=query.data_dict
 
+        staging=query.staging
+
+        if staging == "None":
+            staging = "Staging"
+
+
         print(master_data)
         if isinstance(master_data, dict):
             df = pd.DataFrame.from_dict([master_data], orient="columns").reset_index()
@@ -985,7 +1025,7 @@ def predict_model(query: make_prediction_with_data):
         print(df.head())
 
         use_model_name = query.use_model_name
-        loaded_model = mlflow_model(model_name=use_model_name, staging="Staging")
+        loaded_model = mlflow_model(model_name=use_model_name, staging=staging) #"Staging")
 
         output = loaded_model.make_predictions(data=df)
         target_name = list(loaded_model.get_model_artifact(artifact="target_limits.json").keys())[0]
@@ -1026,9 +1066,14 @@ def get_model_artifact(query: model_artifact):
 
     use_model_name = query.use_model_name
     artifact = query.artifact
+    staging=query.staging
+
+    if staging == "None":
+        staging = "Staging"
 
 
-    loaded_model = mlflow_model(model_name=use_model_name, staging="Staging")
+
+    loaded_model = mlflow_model(model_name=use_model_name, staging=staging) #"Staging")
 
 
 
@@ -1055,7 +1100,11 @@ def get_model_version(query: model_version):
         credential = DefaultAzureCredential(exclude_environment_credential=True)
 
     use_model_name = query.use_model_name
-    staging = query.staging
+    staging=query.staging
+
+    if staging == "None":
+        staging = "Staging"
+
 
 
     loaded_model = mlflow_model(model_name=use_model_name, staging=staging)
@@ -1073,6 +1122,81 @@ def get_model_version(query: model_version):
 
 
 
+
+
+# TODO: work on this callback, not working actually
+@app.post("/model_make_optimizing")
+def predict_model(query: make_optimization_with_data):
+
+    local_run = os.getenv("LOCAL_RUN", False)
+
+    print("### model_make_optimizing ###")
+
+    if local_run:
+        # account = "devstoreaccount1"
+        account=query.account
+        credential = os.getenv("AZURE_STORAGE_KEY")
+
+    else:
+        account = os.environ["AZURE_STORAGE_ACCOUNT"]
+        # credential = os.environ["AZURE_STORAGE_KEY"]
+        credential = DefaultAzureCredential(exclude_environment_credential=True)
+
+    if query.limits_dict is not None:
+        master_data=query.limits_dict
+
+        staging=query.staging
+        target_value = query.target
+
+        if staging == "None":
+            staging = "Staging"
+
+
+        print(f"model_make_optimizing: {master_data}")
+
+
+        use_model_name = query.use_model_name
+        loaded_model = mlflow_model(model_name=use_model_name, staging=staging) #"Staging")
+
+
+        # bounds = bounds_from_dict(bounds_dict = loaded_model.get_model_artifact(artifact="feature_limits.json"))
+        bounds = bounds_from_dict(bounds_dict = master_data)
+        bounds
+
+
+
+        gen_output = genetic_algorithm(
+            target=target_value,
+            bounds=bounds,
+            model=loaded_model,
+            break_accuracy=0.005,
+            digits=5,
+            n_bits=16,
+            n_iter=100,
+            n_pop=100,
+            r_cross=0.9,
+        )
+
+
+        df = makedf(liste=gen_output, model=loaded_model)
+
+
+        print(df)
+
+        df_output = df.to_json(orient="records")
+
+
+        # output = df_output.to_json(orient='split')
+
+
+        output = df_output
+
+        # output = "200"
+
+        return output
+
+    else:
+        return None
 
 
 

@@ -102,6 +102,16 @@ target = 43
 # {'BiologicalMaterial02': {'min': 47.577262843692466, 'max': 68.45273715630753}, 'ManufacturingProcess06': {'min': 199.99953651551115, 'max': 230.40046348448885}}
 
 
+
+def bounds_from_dict(bounds_dict):
+    bounds = [[bounds_dict[element]["min"], bounds_dict[element]["max"]] for element in bounds_dict.keys()]
+    return bounds
+
+
+bounds = bounds_from_dict(bounds_dict = my_mlflow_model.get_model_artifact(artifact="feature_limits.json"))
+bounds
+
+
 genetic_algorithm(
     target=43,
     bounds=[[49, 68], [200, 230]],
@@ -115,6 +125,38 @@ genetic_algorithm(
 )
 
 
+
+
+
+gen_output = genetic_algorithm(
+    target=43,
+    bounds=[[49, 68], [200, 230]],
+    model=my_mlflow_model,
+    break_accuracy=0.005,
+    digits=5,
+    n_bits=16,
+    n_iter=100,
+    n_pop=100,
+    r_cross=0.9,
+)
+
+
+
+
+def makedf(liste, model):
+
+    model_features = model.get_features()
+    data = pd.DataFrame(data= liste)
+    data = data.T
+    data.columns = [element for element in model_features]
+    return data
+
+
+df = makedf(liste=gen_output, model=my_mlflow_model)
+
+df
+
+df.to_json(orient="records")
 
 
 
