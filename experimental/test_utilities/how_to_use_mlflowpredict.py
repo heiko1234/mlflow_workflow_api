@@ -70,7 +70,7 @@ features = ["BioMaterial1", "BioMaterial2", "ProcessValue1"]
 
 
 
-from backend_service.utilities.mlflow_predict_class import mlflow_model
+from backend_service.backend_service.utilities.mlflow_predict_class import mlflow_model
 
 
 
@@ -83,6 +83,9 @@ df[features]
 data[features]
 
 
+
+data
+df
 
 
 # #######################
